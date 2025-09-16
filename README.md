@@ -1,6 +1,5 @@
 # MDM: Human Motion Diffusion Model
 
-
 [![arXiv](https://img.shields.io/badge/arXiv-<2209.14916>-<COLOR>.svg)](https://arxiv.org/abs/2209.14916)
 <a href="https://replicate.com/arielreplicate/motion_diffusion_model"><img src="https://replicate.com/arielreplicate/motion_diffusion_model/badge"></a>
 
@@ -26,7 +25,6 @@ Performance improvement is due to an evaluation bug fix. BLUE marks fixed entrie
 - You can use [this](assets/fixed_results.tex) `.tex` file.
 - The fixed **KIT** results are available [here](https://github.com/GuyTevet/motion-diffusion-model/issues/211#issue-2369160290).
 
-
 ## [NEW] DiP: Ultra-fast Text-to-motion
 
 ### DiP is now part of the MDM code base!
@@ -34,8 +32,6 @@ Performance improvement is due to an evaluation bug fix. BLUE marks fixed entrie
 ### [Here's how to use it](DiP.md)
 
 ![DiP](https://github.com/GuyTevet/mdm-page/raw/main/static/figures/dip_vis_caption_small.gif)
-
-
 
 ## Bibtex
 
@@ -66,20 +62,22 @@ DiP and CLoSD:
 ## News
 
 📢 **12/Feb/25** - Added many things:
-  * [The DiP model](DiP.md)
-  * MDM with DistilBERT text encoder (Add `--text_encoder_type bert`)
+
+* [The DiP model](DiP.md)
+* MDM with DistilBERT text encoder (Add `--text_encoder_type bert`)
     * Developed by the legendary [Roy Kapon](https://scholar.google.com/citations?user=FAQOuSgAAAAJ&hl=en)!
-  * `--gen_during_training` feature.
-  * `--mask_frames` bug fix.
-  * `--use_ema` Weight averaging using Exponential Moving Average.
-  * Dataset caching for faster loading (by default).
-  * `eval_humanml` script can be logged with WanDB.
+* `--gen_during_training` feature.
+* `--mask_frames` bug fix.
+* `--use_ema` Weight averaging using Exponential Moving Average.
+* Dataset caching for faster loading (by default).
+* `eval_humanml` script can be logged with WanDB.
 
 📢 **29/Jan/25** - Added WandB support with `--train_platform_type WandBPlatform`.
 
 📢 **15/Apr/24** - Released a [50 diffusion steps model](https://drive.google.com/file/d/1cfadR1eZ116TIdXK7qDX1RugAerEiJXr/view?usp=sharing) (instead of 1000 steps) which runs 20X faster 🤩🤩🤩 with comparable results.
 
-📢 **12/Apr/24** - MDM inference is now 2X faster 🤩🤩🤩 This was made possible by [calling CLIP just once and caching the result](https://github.com/GuyTevet/motion-diffusion-model/commit/94c173ff8bb11362e45dd9262751f07bf9293660), and is backward compatible with older models.
+📢 **12/Apr/24** - MDM inference is now 2X faster 🤩🤩🤩 This was made possible by [calling CLIP just once and caching the result](https://github.com/GuyTevet/motion-diffusion-model/commit/94c173ff8bb11362e45dd9262751f07bf9293660), and is backward
+compatible with older models.
 
 📢 **25/Jan/24** - Fixed bug in evalutation code (#182) - Please use the fixed results when citing MDM.<br>
 
@@ -88,18 +86,17 @@ DiP and CLoSD:
 📢 **23/Nov/22** - Fixed evaluation issue (#42) - Please pull and run `bash prepare/download_t2m_evaluators.sh` from the top of the repo to adapt.
 
 📢 **4/Nov/22** - Added sampling, training and evaluation of unconstrained tasks.
-  Note slight env changes adapting to the new code. If you already have an installed environment, run `bash prepare/download_unconstrained_assets.sh; conda install -y -c anaconda scikit-learn
+Note slight env changes adapting to the new code. If you already have an installed environment, run `bash prepare/download_unconstrained_assets.sh; conda install -y -c anaconda scikit-learn
 ` to adapt.
 
 📢 **3/Nov/22** - Added in-between and upper-body editing.
 
 📢 **31/Oct/22** - Added sampling, training and evaluation of action-to-motion tasks.
 
-📢 **9/Oct/22** - Added training and evaluation scripts. 
-  Note slight env changes adapting to the new code. If you already have an installed environment, run `bash prepare/download_glove.sh; pip install clearml` to adapt.
+📢 **9/Oct/22** - Added training and evaluation scripts.
+Note slight env changes adapting to the new code. If you already have an installed environment, run `bash prepare/download_glove.sh; pip install clearml` to adapt.
 
 📢 **6/Oct/22** - First release - sampling and rendering using pre-trained models.
-
 
 ## Checkout MDM Follow-ups (partial list)
 
@@ -120,7 +117,6 @@ for Zero-shot Motion Transfer
 
 🏃 [CAMDM](https://github.com/AIGAnimation/CAMDM) - Taming Diffusion Probabilistic Models for Character Control - a real-time version of MDM.
 
-
 ## Getting started
 
 This code was tested on `Ubuntu 18.04.5 LTS` and requires:
@@ -137,9 +133,11 @@ Install ffmpeg (if not already installed):
 sudo apt update
 sudo apt install ffmpeg
 ```
+
 For windows use [this](https://www.geeksforgeeks.org/how-to-install-ffmpeg-on-windows/) instead.
 
 Setup conda env:
+
 ```shell
 conda env create -f environment.yml
 conda activate mdm
@@ -157,6 +155,7 @@ bash prepare/download_smpl_files.sh
 bash prepare/download_glove.sh
 bash prepare/download_t2m_evaluators.sh
 ```
+
 </details>
 
 <details>
@@ -166,6 +165,7 @@ bash prepare/download_t2m_evaluators.sh
 bash prepare/download_smpl_files.sh
 bash prepare/download_recognition_models.sh
 ```
+
 </details>
 
 <details>
@@ -176,11 +176,12 @@ bash prepare/download_smpl_files.sh
 bash prepare/download_recognition_models.sh
 bash prepare/download_recognition_unconstrained_models.sh
 ```
+
 </details>
 
 ### 2. Get data
 
-**Text to Motion** 
+**Text to Motion**
 
 [Download HumanML3D](https://drive.google.com/drive/folders/1OZrTlAGRvLjXhXwnRiOC-oxYry1vf-Uu?usp=drive_link)
 
@@ -196,7 +197,6 @@ There are two paths to get the data:
 
 (b) **Get full data** to train and evaluate the model.
 
-
 #### a. The easy way (text only)
 
 **HumanML3D** - Clone HumanML3D, then copy the data dir to our repository:
@@ -208,7 +208,6 @@ unzip ./HumanML3D/HumanML3D/texts.zip -d ./HumanML3D/HumanML3D/
 cp -r HumanML3D/HumanML3D motion-diffusion-model/dataset/HumanML3D
 cd motion-diffusion-model
 ```
-
 
 #### b. Full data (text + motion capture)
 
@@ -225,29 +224,33 @@ cp -r ../HumanML3D/HumanML3D ./dataset/HumanML3D
 <details>
   <summary><b>Action to Motion</b></summary>
 
-**UESTC, HumanAct12** 
+**UESTC, HumanAct12**
+
 ```bash
 bash prepare/download_a2m_datasets.sh
 ```
+
 </details>
 
 <details>
   <summary><b>Unconstrained</b></summary>
 
-**HumanAct12** 
+**HumanAct12**
+
 ```bash
 bash prepare/download_unconstrained_datasets.sh
 ```
+
 </details>
 
 ### 3. Download the pretrained models
 
-Download the model(s) you wish to use, then unzip and place them in `./save/`. 
+Download the model(s) you wish to use, then unzip and place them in `./save/`.
 
 <details>
   <summary><b>Text to Motion</b></summary>
 
-**You need only the first one.** 
+**You need only the first one.**
 
 **HumanML3D**
 
@@ -293,8 +296,8 @@ Download the model(s) you wish to use, then unzip and place them in `./save/`.
 
 </details>
 
-
 ## Motion Synthesis
+
 <details>
   <summary><b>Text to Motion</b></summary>
 
@@ -315,6 +318,7 @@ python -m sample.generate --model_path ./save/humanml_trans_enc_512/model0002000
 ```shell
 python -m sample.generate --model_path ./save/humanml_trans_enc_512/model000200000.pt --text_prompt "the person walked forward and is picking up his toolbox."
 ```
+
 </details>
 
 <details>
@@ -337,6 +341,7 @@ python -m sample.generate --model_path ./save/humanact12/model000350000.pt --act
 ```shell
 python -m sample.generate --model_path ./save/humanact12/model000350000.pt --action_name "drink"
 ```
+
 </details>
 
 <details>
@@ -351,6 +356,7 @@ By abuse of notation, (num_samples * num_repetitions) samples are created, and a
 </details>
 
 **You may also define:**
+
 * `--device` id.
 * `--seed` to sample different prompts.
 * `--motion_length` (text-to-motion only) in seconds (maximum is 9.8[sec]).
@@ -375,19 +381,22 @@ python -m visualize.render_mesh --input_path /path/to/mp4/stick/figure/file
 ```
 
 **This script outputs:**
+
 * `sample##_rep##_smpl_params.npy` - SMPL parameters (thetas, root translations, vertices and faces)
 * `sample##_rep##_obj` - Mesh per frame in `.obj` format.
 
 **Notes:**
+
 * The `.obj` can be integrated into Blender/Maya/3DS-MAX and rendered using them.
 * This script is running [SMPLify](https://smplify.is.tue.mpg.de/) and needs GPU as well (can be specified with the `--device` flag).
 * **Important** - Do not change the original `.mp4` path before running the script.
 
 **Notes for 3d makers:**
+
 * You have two ways to animate the sequence:
-  1. Use the [SMPL add-on](https://smpl.is.tue.mpg.de/index.html) and the theta parameters saved to `sample##_rep##_smpl_params.npy` (we always use beta=0 and the gender-neutral model).
-  1. A more straightforward way is using the mesh data itself. All meshes have the same topology (SMPL), so you just need to keyframe vertex locations. 
-     Since the OBJs are not preserving vertices order, we also save this data to the `sample##_rep##_smpl_params.npy` file for your convenience.
+    1. Use the [SMPL add-on](https://smpl.is.tue.mpg.de/index.html) and the theta parameters saved to `sample##_rep##_smpl_params.npy` (we always use beta=0 and the gender-neutral model).
+    1. A more straightforward way is using the mesh data itself. All meshes have the same topology (SMPL), so you just need to keyframe vertex locations.
+       Since the OBJs are not preserving vertices order, we also save this data to the `sample##_rep##_smpl_params.npy` file for your convenience.
 
 ## Motion Editing
 
@@ -402,11 +411,11 @@ python -m sample.edit --model_path ./save/humanml_trans_enc_512/model000200000.p
 ```
 
 **You may also define:**
+
 * `--num_samples` (default is 10) / `--num_repetitions` (default is 3).
 * `--device` id.
 * `--seed` to sample different prompts.
 * `--edit_mode upper_body` For upper body editing (lower body is fixed).
-
 
 The output will look like this (blue frames are from the input motion; orange were generated by the model):
 
@@ -451,11 +460,12 @@ To reproduce MDM+DistilBERT, Run:
 python -m train.train_mdm --save_dir save/my_humanml_trans_dec_bert_512 --dataset humanml --diffusion_steps 50 --arch trans_dec --text_encoder_type bert --mask_frames --use_ema
 ```
 
-
 **KIT**
+
 ```shell
 python -m train.train_mdm --save_dir save/my_kit_trans_enc_512 --dataset kit
 ```
+
 </details>
 <details>
   <summary><b>Action to Motion</b></summary>
@@ -463,6 +473,7 @@ python -m train.train_mdm --save_dir save/my_kit_trans_enc_512 --dataset kit
 ```shell
 python -m train.train_mdm --save_dir save/my_name --dataset {humanact12,uestc} --cond_mask_prob 0 --lambda_rcxyz 1 --lambda_vel 1 --lambda_fc 1
 ```
+
 </details>
 
 <details>
@@ -471,10 +482,10 @@ python -m train.train_mdm --save_dir save/my_name --dataset {humanact12,uestc} -
 ```shell
 python -m train.train_mdm --save_dir save/my_name --dataset humanact12 --cond_mask_prob 0 --lambda_rcxyz 1 --lambda_vel 1 --lambda_fc 1  --unconstrained
 ```
+
 </details>
 
-
-* **Recommended:** Add `--eval_during_training` and `--gen_during_training` to evaluate and generate motions for each saved checkpoint. 
+* **Recommended:** Add `--eval_during_training` and `--gen_during_training` to evaluate and generate motions for each saved checkpoint.
   This will slow down training but will give you better monitoring.
 * **Recommended:** Add `--use_ema` for Exponential Moving Average, and `--mask_frames` to fix a masking bug. Both improve performance.
 * Use `--diffusion_steps 50` to train the faster model with less diffusion steps.
@@ -483,24 +494,27 @@ python -m train.train_mdm --save_dir save/my_name --dataset humanact12 --cond_ma
 * Use `--text_encoder_type` to choose the text encoder `{clip, bert}` (`clip` is default).
 * Add `--train_platform_type {WandBPlatform, TensorboardPlatform}` to track results with either [WandB](https://wandb.ai/site/) or [Tensorboard](https://www.tensorflow.org/tensorboard).
 
-
 ## Evaluate
 
 <details>
   <summary><b>Text to Motion</b></summary>
 
 <!-- * Takes about 20 hours (on a single GPU) -->
+
 * The output of this script for the pre-trained models (as was reported in the paper) is provided in the checkpoints zip file.
 
 **HumanML3D**
+
 ```shell
 python -m eval.eval_humanml --model_path ./save/humanml_trans_enc_512/model000475000.pt
 ```
 
 **KIT**
+
 ```shell
 python -m eval.eval_humanml --model_path ./save/kit_trans_enc_512/model000400000.pt
 ```
+
 </details>
 
 <details>
@@ -512,6 +526,7 @@ python -m eval.eval_humanml --model_path ./save/kit_trans_enc_512/model000400000
 ```shell
 python -m eval.eval_humanact12_uestc --model <path-to-model-ckpt> --eval_mode full
 ```
+
 where `path-to-model-ckpt` can be a path to any of the pretrained action-to-motion models listed above, or to a checkpoint trained by the user.
 
 </details>
@@ -538,6 +553,7 @@ that our code is based on:
 [guided-diffusion](https://github.com/openai/guided-diffusion), [MotionCLIP](https://github.com/GuyTevet/MotionCLIP), [text-to-motion](https://github.com/EricGuo5513/text-to-motion), [actor](https://github.com/Mathux/ACTOR), [joints2smpl](https://github.com/wangsen1312/joints2smpl), [MoDi](https://github.com/sigal-raab/MoDi).
 
 ## License
+
 This code is distributed under an [MIT LICENSE](LICENSE).
 
 Note that our code depends on other libraries, including CLIP, SMPL, SMPL-X, PyTorch3D, and uses datasets that each have their own respective licenses that must also be followed.
