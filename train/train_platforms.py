@@ -1,6 +1,7 @@
 import os
 import glob
 
+
 class TrainPlatform:
     def __init__(self, save_dir, *args, **kwargs):
         self.path, file = os.path.split(save_dir)
@@ -17,6 +18,7 @@ class TrainPlatform:
 
     def close(self):
         pass
+
 
 # Deprecated
 class ClearmlPlatform(TrainPlatform):
@@ -57,6 +59,7 @@ class NoPlatform(TrainPlatform):
     def __init__(self, save_dir, *args, **kwargs):
         pass
 
+
 class WandBPlatform(TrainPlatform):
     import wandb
     def __init__(self, save_dir, config=None, *args, **kwargs):
@@ -79,12 +82,10 @@ class WandBPlatform(TrainPlatform):
         self.wandb.log({series: [self.wandb.Video(file, format='mp4', fps=20) for file in files]}, step=iteration)
 
     def report_args(self, args, name):
-        self.wandb.config.update(args)  #, allow_val_change=True)  # use allow_val_change ONLY if you want to change existing args (e.g., overwrite)
+        self.wandb.config.update(args)  # , allow_val_change=True)  # use allow_val_change ONLY if you want to change existing args (e.g., overwrite)
 
     def watch_model(self, *args, **kwargs):
         self.wandb.watch(args, kwargs)
 
     def close(self):
         self.wandb.finish()
-
-

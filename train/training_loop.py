@@ -27,7 +27,6 @@ from utils.model_util import load_model_wo_clip
 from data_loaders.humanml.scripts.motion_process import get_target_location, sample_goal, get_allowed_joint_options
 from utils.sampler_util import ClassifierFreeSampleModel
 
-
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
 # 20-21 within the first ~1K steps of training.
@@ -45,7 +44,7 @@ class TrainLoop:
             self.model_avg = copy.deepcopy(self.model)
         self.model_for_eval = self.model_avg if self.args.use_ema else self.model
         if args.gen_guidance_param != 1:
-            self.model_for_eval = ClassifierFreeSampleModel(self.model_for_eval)   # wrapping model with the classifier-free sampler
+            self.model_for_eval = ClassifierFreeSampleModel(self.model_for_eval)  # wrapping model with the classifier-free sampler
         self.diffusion = diffusion
         self.cond_mode = model.cond_mode
         self.data = data
@@ -62,7 +61,7 @@ class TrainLoop:
 
         self.step = 0
         self.resume_step = 0
-        self.global_batch = self.batch_size # * dist.get_world_size()
+        self.global_batch = self.batch_size  # * dist.get_world_size()
         self.num_steps = args.num_steps
         self.num_epochs = self.num_steps // len(self.data) + 1
 
@@ -111,7 +110,7 @@ class TrainLoop:
                                             split=args.eval_split,
                                             hml_mode='eval',
                                             autoregressive=args.autoregressive,
-                                            fixed_len=args.context_len+args.pred_len, pred_len=args.pred_len, device=dist_util.dev())
+                                            fixed_len=args.context_len + args.pred_len, pred_len=args.pred_len, device=dist_util.dev())
 
             self.eval_gt_data = get_dataset_loader(name=args.dataset, batch_size=args.eval_batch_size, num_frames=None,
                                                    split=args.eval_split,
@@ -119,10 +118,10 @@ class TrainLoop:
             self.eval_wrapper = EvaluatorMDMWrapper(args.dataset, dist_util.dev())
             self.eval_data = {
                 'test': lambda: eval_humanml.get_mdm_loader(self.args,
-                    self.model_for_eval, diffusion, args.eval_batch_size,
-                    gen_loader, mm_num_samples, mm_num_repeats, gen_loader.dataset.opt.max_motion_length,
-                    args.eval_num_samples, scale=args.gen_guidance_param,
-                )
+                                                            self.model_for_eval, diffusion, args.eval_batch_size,
+                                                            gen_loader, mm_num_samples, mm_num_repeats, gen_loader.dataset.opt.max_motion_length,
+                                                            args.eval_num_samples, scale=args.gen_guidance_param,
+                                                            )
             }
         self.use_ddp = False
         self.ddp_model = self.model
@@ -133,9 +132,9 @@ class TrainLoop:
         if resume_checkpoint:
             # we add 1 because self.resume_step has already been done and we don't want to run it again
             # in particular we don't want to run the evaluation and generation again
-            self.step += 1  
-            
-            self.resume_step = parse_resume_step_from_filename(resume_checkpoint) 
+            self.step += 1
+
+            self.resume_step = parse_resume_step_from_filename(resume_checkpoint)
             logger.log(f"loading model from checkpoint: {resume_checkpoint}...")
             state_dict = dist_util.load_state_dict(
                 resume_checkpoint, map_location=dist_util.dev())
@@ -192,16 +191,16 @@ class TrainLoop:
     def cond_modifiers(self, cond, motion):
         # All modifiers must be in-place
         self.target_cond_modifier(cond, motion)
-    
+
     def target_cond_modifier(self, cond, motion):
         if self.args.multi_target_cond:
             batch_size = motion.shape[0]
             cond['target_joint_names'], cond['is_heading'] = sample_goal(batch_size, motion.device, self.args.target_joint_names)
 
-            cond['target_cond'] = get_target_location(motion, 
-                                                      self.data.dataset.mean[None, :, None, None], 
-                                                      self.data.dataset.std[None, :, None, None], 
-                                                      cond['lengths'], 
+            cond['target_cond'] = get_target_location(motion,
+                                                      self.data.dataset.mean[None, :, None, None],
+                                                      self.data.dataset.std[None, :, None, None],
+                                                      cond['lengths'],
                                                       self.data.dataset.t2m_dataset.opt.joints_num, self.model.all_goal_joint_names, cond['target_joint_names'], cond['is_heading']).detach()
 
     def run_loop(self):
@@ -211,14 +210,14 @@ class TrainLoop:
             for motion, cond in tqdm(self.data):
                 if not (not self.lr_anneal_steps or self.total_step() < self.lr_anneal_steps):
                     break
-                
-                self.cond_modifiers(cond['y'], motion) # Modify in-place for efficiency
+
+                self.cond_modifiers(cond['y'], motion)  # Modify in-place for efficiency
                 motion = motion.to(self.device)
                 cond['y'] = {key: val.to(self.device) if torch.is_tensor(val) else val for key, val in cond['y'].items()}
 
                 self.run_step(motion, cond)
                 if self.total_step() % self.log_interval == 0:
-                    for k,v in logger.get_current().dumpkvs().items():
+                    for k, v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
                             print('step[{}]: loss[{:0.5f}]'.format(self.total_step(), v))
 
@@ -274,7 +273,7 @@ class TrainLoop:
 
         elif self.dataset in ['humanact12', 'uestc']:
             eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times, num_samples=self.args.eval_num_samples,
-                                        batch_size=self.args.eval_batch_size, device=self.device, guidance_param = 1,
+                                        batch_size=self.args.eval_batch_size, device=self.device, guidance_param=1,
                                         dataset=self.dataset, unconstrained=self.args.unconstrained,
                                         model_path=os.path.join(self.save_dir, self.ckpt_file_name()))
             eval_dict = eval_humanact12_uestc.evaluate(eval_args, model=self.model, diffusion=self.diffusion, data=self.data.dataset)
@@ -286,8 +285,7 @@ class TrainLoop:
                     self.train_platform.report_scalar(name=k, value=np.array(v).astype(float).mean(), iteration=self.step, group_name='Eval Unconstrained')
 
         end_eval = time.time()
-        print(f'Evaluation time: {round(end_eval-start_eval)/60}min')
-
+        print(f'Evaluation time: {round(end_eval - start_eval) / 60}min')
 
     def run_step(self, batch, cond):
         self.forward_backward(batch, cond)
@@ -358,11 +356,9 @@ class TrainLoop:
         logger.logkv("step", self.total_step())
         logger.logkv("samples", (self.total_step() + 1) * self.global_batch)
 
-
     def ckpt_file_name(self):
         return f"model{(self.total_step()):09d}.pt"
 
-  
     def generate_during_training(self):
         if not self.args.gen_during_training:
             return
@@ -379,9 +375,8 @@ class TrainLoop:
             gen_args.target_joint_source = 'data'
         all_sample_save_path = generate(gen_args)
         self.train_platform.report_media(title='Motion', series='Predicted Motion', iteration=self.total_step(),
-                                         local_path=all_sample_save_path)        
+                                         local_path=all_sample_save_path)
 
-    
     def find_resume_checkpoint(self) -> Optional[str]:
         '''look for all file in save directory in the pattent of model{number}.pt
             and return the one with the highest step number.
@@ -395,10 +390,10 @@ class TrainLoop:
         models = {int(match.group(1)): file for file, match in matches.items() if match}
 
         return pjoin(self.args.save_dir, models[max(models)]) if models else None
-    
+
     def total_step(self):
         return self.step + self.resume_step
-    
+
     def save(self):
         def save_checkpoint():
             def del_clip(state_dict):
@@ -430,8 +425,8 @@ class TrainLoop:
         save_checkpoint()
 
         with bf.BlobFile(
-            bf.join(self.save_dir, f"opt{(self.total_step()):09d}.pt"),
-            "wb",
+                bf.join(self.save_dir, f"opt{(self.total_step()):09d}.pt"),
+                "wb",
         ) as f:
             opt_state = self.opt.state_dict()
             if self.use_fp16:
@@ -463,7 +458,6 @@ def get_blob_logdir():
     # You can change this to be a separate path to save checkpoints to
     # a blobstore or some external drive.
     return logger.get_dir()
-
 
 
 def log_loss_dict(diffusion, ts, losses):
