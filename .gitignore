@@ -131,6 +131,7 @@ dmypy.json
 save/
 wandb/
 t2m/
+kit/
 body_models/
 glove/
 slurm**/
@@ -138,4 +139,6 @@ slurm**/
 *.err
 *.slurm
 .vscode/
+
 .idea/
+dataset/HumanML3D/
