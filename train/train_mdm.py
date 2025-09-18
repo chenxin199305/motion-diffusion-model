@@ -13,6 +13,7 @@ from data_loaders.get_data import get_dataset_loader
 from utils.model_util import create_model_and_diffusion
 from train.train_platforms import WandBPlatform, ClearmlPlatform, TensorboardPlatform, NoPlatform  # required for the eval operation
 
+
 def main():
     args = train_args()
     fixseed(args.seed)
@@ -34,12 +35,12 @@ def main():
 
     print("creating data loader...")
 
-    data = get_dataset_loader(name=args.dataset, 
-                              batch_size=args.batch_size, 
-                              num_frames=args.num_frames, 
-                              fixed_len=args.pred_len + args.context_len, 
+    data = get_dataset_loader(name=args.dataset,
+                              batch_size=args.batch_size,
+                              num_frames=args.num_frames,
+                              fixed_len=args.pred_len + args.context_len,
                               pred_len=args.pred_len,
-                              device=dist_util.dev(),)
+                              device=dist_util.dev(), )
 
     print("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args, data)
@@ -50,6 +51,7 @@ def main():
     print("Training...")
     TrainLoop(args, train_platform, model, diffusion, data).run_loop()
     train_platform.close()
+
 
 if __name__ == "__main__":
     main()
