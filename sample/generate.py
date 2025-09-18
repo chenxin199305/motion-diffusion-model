@@ -31,7 +31,7 @@ def main(args=None):
     niter = os.path.basename(args.model_path).replace('model', '').replace('.pt', '')
     max_frames = 196 if args.dataset in ['kit', 'humanml'] else 60
     fps = 12.5 if args.dataset == 'kit' else 20
-    n_frames = min(max_frames, int(args.motion_length*fps))
+    n_frames = min(max_frames, int(args.motion_length * fps))
     is_using_data = not any([args.input_text, args.text_prompt, args.action_file, args.action_name])
     if args.context_len > 0:
         is_using_data = True  # For prefix completion, we need to sample a prefix
@@ -91,7 +91,7 @@ def main(args=None):
     load_saved_model(model, args.model_path, use_avg=args.use_ema)
 
     if args.guidance_param != 1:
-        model = ClassifierFreeSampleModel(model)   # wrapping model with the classifier-free sampler
+        model = ClassifierFreeSampleModel(model)  # wrapping model with the classifier-free sampler
     model.to(dist_util.dev())
     model.eval()  # disable random masking
 
@@ -117,8 +117,8 @@ def main(args=None):
         _, model_kwargs = collate(collate_args)
 
     model_kwargs['y'] = {key: val.to(dist_util.dev()) if torch.is_tensor(val) else val for key, val in model_kwargs['y'].items()}
-    init_image = None    
-    
+    init_image = None
+
     all_motions = []
     all_lengths = []
     all_text = []
@@ -126,21 +126,21 @@ def main(args=None):
     # add CFG scale to batch
     if args.guidance_param != 1:
         model_kwargs['y']['scale'] = torch.ones(args.batch_size, device=dist_util.dev()) * args.guidance_param
-    
+
     if 'text' in model_kwargs['y'].keys():
         # encoding once instead of each iteration saves lots of time
         model_kwargs['y']['text_embed'] = model.encode_text(model_kwargs['y']['text'])
-    
+
     if args.dynamic_text_path != '':
         # Rearange the text to match the autoregressive sampling - each prompt fits to a single prediction
         # Which is 2 seconds of motion by default
         model_kwargs['y']['text'] = [model_kwargs['y']['text']] * args.num_samples
         if args.text_encoder_type == 'bert':
-            model_kwargs['y']['text_embed'] = (model_kwargs['y']['text_embed'][0].unsqueeze(0).repeat(args.num_samples, 1, 1, 1), 
+            model_kwargs['y']['text_embed'] = (model_kwargs['y']['text_embed'][0].unsqueeze(0).repeat(args.num_samples, 1, 1, 1),
                                                model_kwargs['y']['text_embed'][1].unsqueeze(0).repeat(args.num_samples, 1, 1))
         else:
             raise NotImplementedError('DiP model only supports BERT text encoder at the moment. If you implement this, please send a PR!')
-    
+
     for rep_i in range(args.num_repetitions):
         print(f'### Sampling [repetitions #{rep_i}]')
 
@@ -184,7 +184,6 @@ def main(args=None):
 
         print(f"created {len(all_motions) * args.batch_size} samples")
 
-
     all_motions = np.concatenate(all_motions, axis=0)
     all_motions = all_motions[:total_num_samples]  # [bs, njoints, 6, seqlen]
     all_text = all_text[:total_num_samples]
@@ -212,7 +211,7 @@ def main(args=None):
     skeleton = paramUtil.kit_kinematic_chain if args.dataset == 'kit' else paramUtil.t2m_kinematic_chain
 
     sample_print_template, row_print_template, all_print_template, \
-    sample_file_template, row_file_template, all_file_template = construct_template_variables(args.unconstrained)
+        sample_file_template, row_file_template, all_file_template = construct_template_variables(args.unconstrained)
     max_vis_samples = 6
     num_vis_samples = min(args.num_samples, max_vis_samples)
     animations = np.empty(shape=(args.num_samples, args.num_repetitions), dtype=object)
@@ -221,7 +220,7 @@ def main(args=None):
     for sample_i in range(args.num_samples):
         rep_files = []
         for rep_i in range(args.num_repetitions):
-            caption = all_text[rep_i*args.batch_size + sample_i]
+            caption = all_text[rep_i * args.batch_size + sample_i]
             if args.dynamic_text_path != '':  # caption per frame
                 assert type(caption) == list
                 caption_per_frame = []
@@ -229,18 +228,17 @@ def main(args=None):
                     caption_per_frame += [c] * args.pred_len
                 caption = caption_per_frame
 
-            
             # Trim / freeze motion if needed
-            length = all_lengths[rep_i*args.batch_size + sample_i]
-            motion = all_motions[rep_i*args.batch_size + sample_i].transpose(2, 0, 1)[:max_length]
+            length = all_lengths[rep_i * args.batch_size + sample_i]
+            motion = all_motions[rep_i * args.batch_size + sample_i].transpose(2, 0, 1)[:max_length]
             if motion.shape[0] > length:
-                motion[length:-1] = motion[length-1]  # duplicate the last frame to end of motion, so all motions will be in equal length
+                motion[length:-1] = motion[length - 1]  # duplicate the last frame to end of motion, so all motions will be in equal length
 
             save_file = sample_file_template.format(sample_i, rep_i)
             animation_save_path = os.path.join(out_path, save_file)
             gt_frames = np.arange(args.context_len) if args.context_len > 0 and not args.autoregressive else []
-            animations[sample_i, rep_i] = plot_3d_motion(animation_save_path, 
-                                                         skeleton, motion, dataset=args.dataset, title=caption, 
+            animations[sample_i, rep_i] = plot_3d_motion(animation_save_path,
+                                                         skeleton, motion, dataset=args.dataset, title=caption,
                                                          fps=fps, gt_frames=gt_frames)
             rep_files.append(animation_save_path)
 
@@ -252,14 +250,13 @@ def main(args=None):
     return out_path
 
 
-def save_multiple_samples(out_path, file_templates,  animations, fps, max_frames, no_dir=False):
-    
+def save_multiple_samples(out_path, file_templates, animations, fps, max_frames, no_dir=False):
     num_samples_in_out_file = 3
     n_samples = animations.shape[0]
-    
-    for sample_i in range(0,n_samples,num_samples_in_out_file):
-        last_sample_i = min(sample_i+num_samples_in_out_file, n_samples)
-        all_sample_save_file = file_templates['all'].format(sample_i, last_sample_i-1)
+
+    for sample_i in range(0, n_samples, num_samples_in_out_file):
+        last_sample_i = min(sample_i + num_samples_in_out_file, n_samples)
+        all_sample_save_file = file_templates['all'].format(sample_i, last_sample_i - 1)
         if no_dir and n_samples <= num_samples_in_out_file:
             all_sample_save_path = out_path
         else:
@@ -267,18 +264,18 @@ def save_multiple_samples(out_path, file_templates,  animations, fps, max_frames
             print(f'saving {os.path.split(out_path)[1]}/{all_sample_save_file}')
 
         clips = clips_array(animations[sample_i:last_sample_i])
-        clips.duration = max_frames/fps
-        
+        clips.duration = max_frames / fps
+
         # import time
         # start = time.time()
         clips.write_videofile(all_sample_save_path, fps=fps, threads=4, logger=None)
         # print(f'duration = {time.time()-start}')
-        
-        for clip in clips.clips: 
+
+        for clip in clips.clips:
             # close internal clips. Does nothing but better use in case one day it will do something
             clip.close()
         clips.close()  # important
- 
+
 
 def construct_template_variables(unconstrained):
     row_file_template = 'sample{:02d}.mp4'
@@ -297,7 +294,7 @@ def construct_template_variables(unconstrained):
         all_print_template = '[samples {:02d} to {:02d} | all repetitions | -> {}]'
 
     return sample_print_template, row_print_template, all_print_template, \
-           sample_file_template, row_file_template, all_file_template
+        sample_file_template, row_file_template, all_file_template
 
 
 def load_dataset(args, max_frames, n_frames):
@@ -313,6 +310,7 @@ def load_dataset(args, max_frames, n_frames):
 
 def is_substr_in_list(substr, list_of_strs):
     return np.char.find(list_of_strs, substr) != -1  # [substr in string for string in list_of_strs]
+
 
 if __name__ == "__main__":
     main()
