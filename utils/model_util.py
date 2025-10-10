@@ -122,7 +122,8 @@ def get_model_args(args, data):
             'text_encoder_type': args.text_encoder_type,
             'pos_embed_max_len': args.pos_embed_max_len, 'mask_frames': args.mask_frames,
             'pred_len': args.pred_len, 'context_len': args.context_len, 'emb_policy': emb_policy,
-            'all_goal_joint_names': all_goal_joint_names, 'multi_target_cond': multi_target_cond, 'multi_encoder_type': multi_encoder_type, 'target_enc_layers': target_enc_layers,
+            'all_goal_joint_names': all_goal_joint_names, 'multi_target_cond': multi_target_cond,
+            'multi_encoder_type': multi_encoder_type, 'target_enc_layers': target_enc_layers,
             }
 
 
