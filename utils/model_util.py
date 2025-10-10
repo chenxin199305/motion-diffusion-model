@@ -17,12 +17,67 @@ def load_model_wo_clip(model, state_dict):
 
 
 def create_model_and_diffusion(args, data):
+    """
+    Creates and returns a model and diffusion process based on the provided arguments and dataset.
+
+    Args:
+        args (argparse.Namespace): The configuration arguments for the model and diffusion process.
+        data (object): The dataset object containing dataset-specific information.
+
+    Returns:
+        tuple: A tuple containing:
+            - model (MDM): The created MDM model initialized with the provided arguments and dataset.
+            - diffusion (SpacedDiffusion): The diffusion process configured with the specified parameters.
+    """
     model = MDM(**get_model_args(args, data))
     diffusion = create_gaussian_diffusion(args)
     return model, diffusion
 
 
 def get_model_args(args, data):
+    """
+    Prepares and returns a dictionary of model arguments based on the provided configuration and dataset.
+
+    Args:
+        args (argparse.Namespace): The configuration arguments for the model.
+        data (object): The dataset object containing dataset-specific information.
+
+    Returns:
+        dict: A dictionary containing the model arguments, including:
+            - modeltype (str): The type of the model (default is an empty string).
+            - njoints (int): The number of joints in the dataset.
+            - nfeats (int): The number of features per joint.
+            - num_actions (int): The number of actions in the dataset.
+            - translation (bool): Whether to include translation in the model.
+            - pose_rep (str): The representation of the pose (e.g., 'rot6d').
+            - glob (bool): Whether to include global position information.
+            - glob_rot (bool): Whether to include global rotation information.
+            - latent_dim (int): The latent dimension size.
+            - ff_size (int): The feedforward layer size.
+            - num_layers (int): The number of layers in the model.
+            - num_heads (int): The number of attention heads.
+            - dropout (float): The dropout rate.
+            - activation (str): The activation function to use (e.g., 'gelu').
+            - data_rep (str): The data representation type (e.g., 'hml_vec').
+            - cond_mode (str): The conditioning mode.
+            - cond_mask_prob (float): The probability of masking conditioning inputs.
+            - action_emb (str): The type of action embedding.
+            - arch (str): The model architecture.
+            - emb_trans_dec (bool): Whether to use embedding transformation in the decoder.
+            - clip_version (str): The version of the CLIP model to use.
+            - dataset (str): The name of the dataset.
+            - text_encoder_type (str): The type of text encoder to use.
+            - pos_embed_max_len (int): The maximum length for positional embeddings.
+            - mask_frames (bool): Whether to mask frames in the input.
+            - pred_len (int): The prediction length.
+            - context_len (int): The context length.
+            - emb_policy (str): The embedding policy (e.g., 'add').
+            - all_goal_joint_names (list): A list of goal joint names.
+            - multi_target_cond (bool): Whether to use multi-target conditioning.
+            - multi_encoder_type (str): The type of multi-encoder to use.
+            - target_enc_layers (int): The number of target encoder layers.
+    """
+
     # default args
     clip_version = 'ViT-B/32'
     action_emb = 'tensor'

@@ -144,6 +144,12 @@ def get_dataset_loader(name,
                              pred_len,
                              batch_size)
 
+    # dataset：要加载的数据集对象，必须实现 __getitem__ 和 __len__ 方法。DataLoader 会从该对象中按需读取数据样本。
+    # batch_size：每个批次（batch）包含的数据样本数量。比如设为 32，则每次迭代会返回 32 个样本组成的一个 batch。
+    # shuffle=True：每个 epoch 开始时，是否将数据集中的样本顺序打乱。设为 True 可以提高模型泛化能力，常用于训练阶段。
+    # num_workers=8：用于加载数据的子进程数量。设为 8 表示会启动 8 个进程并行读取数据，加快数据加载速度。设为 0 时则在主进程中加载数据。
+    # drop_last=True：如果数据集大小不能被 batch_size 整除，是否丢弃最后一个不完整的 batch。设为 True 时只返回完整的 batch，常用于训练。
+    # collate_fn=collate：用于将一组样本合并成一个 batch 的函数。自定义 collate 函数可以处理不同格式或长度的数据，比如对序列进行 padding 等。
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
