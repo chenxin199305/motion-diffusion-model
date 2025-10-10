@@ -150,6 +150,7 @@ class MDM(nn.Module):
                     self.clip_version = clip_version
                     self.clip_model = self.load_and_freeze_clip(clip_version)
                     self.encode_text = self.clip_encode_text
+
                 elif self.text_encoder_type == 'bert':
                     assert self.arch == 'trans_dec'
                     # assert self.emb_trans_dec == False # passing just the time embed so it's fine
@@ -159,6 +160,7 @@ class MDM(nn.Module):
                     self.clip_model = load_bert(bert_model_path)  # Sorry for that, the naming is for backward compatibility
                     self.encode_text = self.bert_encode_text
                     self.clip_dim = 768
+
                 else:
                     raise ValueError('We only support [CLIP, BERT] text encoders')
 
