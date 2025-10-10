@@ -5,6 +5,7 @@ from diffusion.respace import SpacedDiffusion, space_timesteps
 from utils.parser_util import get_cond_mode
 from data_loaders.humanml_utils import HML_EE_JOINT_NAMES
 
+
 def load_model_wo_clip(model, state_dict):
     # assert (state_dict['sequence_pos_encoder.pe'][:model.sequence_pos_encoder.pe.shape[0]] == model.sequence_pos_encoder.pe).all()  # TEST
     # assert (state_dict['embed_timestep.sequence_pos_encoder.pe'][:model.embed_timestep.sequence_pos_encoder.pe.shape[0]] == model.embed_timestep.sequence_pos_encoder.pe).all()  # TEST
@@ -22,7 +23,6 @@ def create_model_and_diffusion(args, data):
 
 
 def get_model_args(args, data):
-
     # default args
     clip_version = 'ViT-B/32'
     action_emb = 'tensor'
@@ -52,7 +52,7 @@ def get_model_args(args, data):
     if not hasattr(args, 'pred_len'):
         args.pred_len = 0
         args.context_len = 0
-    
+
     emb_policy = args.__dict__.get('emb_policy', 'add')
     multi_target_cond = args.__dict__.get('multi_target_cond', False)
     multi_encoder_type = args.__dict__.get('multi_encoder_type', 'multi')
@@ -71,26 +71,25 @@ def get_model_args(args, data):
             }
 
 
-
 def create_gaussian_diffusion(args):
     # default params
-    predict_xstart = True  # we always predict x_start (a.k.a. x0), that's our deal!
-    steps = args.diffusion_steps
-    scale_beta = 1.  # no scaling
-    timestep_respacing = ''  # can be used for ddim sampling, we don't use it.
-    learn_sigma = False
-    rescale_timesteps = False
+    predict_xstart = True  # 总是预测原始数据x0
+    steps = args.diffusion_steps  # 扩散步数
+    scale_beta = 1.  # beta不缩放
+    timestep_respacing = ''  # 时间步重采样（用于DDIM）
+    learn_sigma = False  # 不学习方差
+    rescale_timesteps = False  # 不重新缩放时间步
 
     betas = gd.get_named_beta_schedule(args.noise_schedule, steps, scale_beta)
-    loss_type = gd.LossType.MSE
+    loss_type = gd.LossType.MSE  # 使用MSE损失
 
     if not timestep_respacing:
-        timestep_respacing = [steps]
-    
+        timestep_respacing = [steps]  # 默认使用所有时间步
+
     if hasattr(args, 'lambda_target_loc'):
         lambda_target_loc = args.lambda_target_loc
     else:
-        lambda_target_loc = 0.
+        lambda_target_loc = 0.  # 默认值
 
     return SpacedDiffusion(
         use_timesteps=space_timesteps(steps, timestep_respacing),
@@ -109,17 +108,18 @@ def create_gaussian_diffusion(args):
         ),
         loss_type=loss_type,
         rescale_timesteps=rescale_timesteps,
-        lambda_vel=args.lambda_vel,
-        lambda_rcxyz=args.lambda_rcxyz,
-        lambda_fc=args.lambda_fc,
-        lambda_target_loc=lambda_target_loc,
+        lambda_vel=args.lambda_vel,  # 速度损失权重
+        lambda_rcxyz=args.lambda_rcxyz,  # 可能涉及坐标约束的权重
+        lambda_fc=args.lambda_fc,  # 可能涉及物理约束的权重
+        lambda_target_loc=lambda_target_loc,  # 目标位置损失权重
     )
 
-def load_saved_model(model, model_path, use_avg: bool=False):  # use_avg_model
+
+def load_saved_model(model, model_path, use_avg: bool = False):  # use_avg_model
     state_dict = torch.load(model_path, map_location='cpu')
     # Use average model when possible
     if use_avg and 'model_avg' in state_dict.keys():
-    # if use_avg_model:
+        # if use_avg_model:
         print('loading avg model')
         state_dict = state_dict['model_avg']
     else:

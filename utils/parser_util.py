@@ -21,8 +21,9 @@ def parse_and_load_from_model(parser):
 
     if args.cond_mask_prob == 0:
         args.guidance_param = 1
-    
+
     return apply_rules(args)
+
 
 def load_args_from_model(args, args_to_overwrite):
     model_path = get_model_path_from_args()
@@ -35,13 +36,14 @@ def load_args_from_model(args, args_to_overwrite):
         if a in model_args.keys():
             setattr(args, a, model_args[a])
 
-        elif 'cond_mode' in model_args: # backward compitability
+        elif 'cond_mode' in model_args:  # backward compitability
             unconstrained = (model_args['cond_mode'] == 'no_cond')
             setattr(args, 'unconstrained', unconstrained)
 
         else:
             print('Warning: was not able to load [{}], using default value [{}] instead.'.format(a, args.__dict__[a]))
     return args
+
 
 def apply_rules(args):
     # For prefix completion
@@ -60,6 +62,7 @@ def get_args_per_group_name(parser, args, group_name):
             group_dict = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
             return list(argparse.Namespace(**group_dict).__dict__.keys())
     return ValueError('group_name was not found.')
+
 
 def get_model_path_from_args():
     try:
@@ -119,19 +122,15 @@ def add_model_options(parser):
     group.add_argument("--pos_embed_max_len", default=5000, type=int,
                        help="Pose embedding max length.")
     group.add_argument("--use_ema", action='store_true',
-                    help="If True, will use EMA model averaging.")
-    
+                       help="If True, will use EMA model averaging.")
 
     group.add_argument("--multi_target_cond", action='store_true', help="If true, enable multi-target conditioning (aka Sigal's model).")
     group.add_argument("--multi_encoder_type", default='single', choices=['single', 'multi', 'split'], type=str, help="Specifies the encoder type to be used for the multi joint condition.")
     group.add_argument("--target_enc_layers", default=1, type=int, help="Num target encoder layers")
 
-
     # Prefix completion model
     group.add_argument("--context_len", default=0, type=int, help="If larger than 0, will do prefix completion.")
     group.add_argument("--pred_len", default=0, type=int, help="If context_len larger than 0, will do prefix completion. If pred_len will not be specified - will use the same length as context_len")
-    
-
 
 
 def add_data_options(parser):
@@ -172,7 +171,7 @@ def add_training_options(parser):
                        help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
     group.add_argument("--resume_checkpoint", default="", type=str,
                        help="If not empty, will start from the specified checkpoint (path to model###.pt file).")
-    
+
     group.add_argument("--gen_during_training", action='store_true',
                        help="If True, will generate motions during training, on each save interval.")
     group.add_argument("--gen_num_samples", default=3, type=int,
@@ -181,15 +180,15 @@ def add_training_options(parser):
                        help="Number of repetitions, per sample (text prompt/action)")
     group.add_argument("--gen_guidance_param", default=2.5, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
-    
+
     group.add_argument("--avg_model_beta", default=0.9999, type=float, help="Average model beta (for EMA).")
     group.add_argument("--adam_beta2", default=0.999, type=float, help="Adam beta2.")
-    
+
     group.add_argument("--target_joint_names", default='DIMP_FINAL', type=str, help="Force single joint configuration by specifing the joints (coma separated). If None - will use the random mode for all end effectors.")
     group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
     group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
-    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'], 
-                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
+    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
+                       help="Sets the source of the init frames, either from the dataset or isaac init poses.")
 
 
 def add_sampling_options(parser):
@@ -209,8 +208,9 @@ def add_sampling_options(parser):
 
     group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
     group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
-    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'], 
-                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
+    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
+                       help="Sets the source of the init frames, either from the dataset or isaac init poses.")
+
 
 def add_generate_options(parser):
     group = parser.add_argument_group('generate')
@@ -260,8 +260,8 @@ def add_evaluation_options(parser):
                             "full (a2m only) - 20 repetitions.")
     group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
     group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
-    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'], 
-                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
+    group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
+                       help="Sets the source of the init frames, either from the dataset or isaac init poses.")
     group.add_argument("--guidance_param", default=2.5, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
 
