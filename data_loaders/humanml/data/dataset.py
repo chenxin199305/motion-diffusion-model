@@ -709,7 +709,32 @@ class RawTextDataset(data.Dataset):
 
 
 class TextOnlyDataset(data.Dataset):
+    """
+    A PyTorch Dataset class for loading text-only data from a specified split file.
+    This dataset is designed to handle text data associated with motion datasets,
+    but without the motion data itself.
+
+    Attributes:
+        mean (np.ndarray): The mean values for normalization (not used in this class).
+        std (np.ndarray): The standard deviation values for normalization (not used in this class).
+        opt (object): Configuration options for the dataset.
+        data_dict (list): A list of dictionaries containing text data.
+        max_length (int): Maximum length of text tokens (default is 20).
+        pointer (int): Pointer for indexing into the dataset (default is 0).
+        fixed_length (int): Fixed length for text data (default is 120).
+        name_list (list): List of unique names for the text data.
+    """
+
     def __init__(self, opt, mean, std, split_file):
+        """
+        Initializes the TextOnlyDataset.
+
+        Args:
+            opt (object): Configuration options for the dataset.
+            mean (np.ndarray): Mean values for normalization (not used in this class).
+            std (np.ndarray): Standard deviation values for normalization (not used in this class).
+            split_file (str): Path to the split file containing the list of data IDs.
+        """
         self.mean = mean
         self.std = std
         self.opt = opt
@@ -720,17 +745,21 @@ class TextOnlyDataset(data.Dataset):
 
         data_dict = {}
         id_list = []
+
+        # Read the split file to get the list of data IDs
         with cs.open(split_file, 'r') as f:
             for line in f.readlines():
                 id_list.append(line.strip())
-        # id_list = id_list[:200]
 
         new_name_list = []
         length_list = []
+
+        # Process each data ID to load text data
         for name in tqdm(id_list):
             try:
                 text_data = []
                 flag = False
+                # Open the corresponding text file for the data ID
                 with cs.open(pjoin(opt.text_dir, name + '.txt')) as f:
                     for line in f.readlines():
                         text_dict = {}
@@ -744,25 +773,30 @@ class TextOnlyDataset(data.Dataset):
 
                         text_dict['caption'] = caption
                         text_dict['tokens'] = tokens
+
+                        # If the tags are zero, add the text data to the list
                         if f_tag == 0.0 and to_tag == 0.0:
                             flag = True
                             text_data.append(text_dict)
                         else:
                             try:
+                                # Generate a unique name for the text data
                                 new_name = random.choice('ABCDEFGHIJKLMNOPQRSTUVW') + '_' + name
                                 while new_name in data_dict:
                                     new_name = random.choice('ABCDEFGHIJKLMNOPQRSTUVW') + '_' + name
                                 data_dict[new_name] = {'text': [text_dict]}
                                 new_name_list.append(new_name)
                             except:
+                                # Handle errors in processing the line
                                 print(line_split)
                                 print(line_split[2], line_split[3], f_tag, to_tag, name)
-                                # break
 
+                # If flag is set, add the original name to the data dictionary
                 if flag:
                     data_dict[name] = {'text': text_data}
                     new_name_list.append(name)
             except:
+                # Handle errors in loading the text file
                 pass
 
         self.length_arr = np.array(length_list)
@@ -770,21 +804,51 @@ class TextOnlyDataset(data.Dataset):
         self.name_list = new_name_list
 
     def inv_transform(self, data):
+        """
+        Placeholder for inverse transformation of data (not used in this class).
+
+        Args:
+            data (np.ndarray): Input data to be transformed.
+
+        Returns:
+            np.ndarray: The input data (unchanged).
+        """
         return data * self.std + self.mean
 
     def __len__(self):
+        """
+        Returns the number of items in the dataset.
+
+        Returns:
+            int: The number of items in the dataset.
+        """
         return len(self.data_dict)
 
     def __getitem__(self, item):
+        """
+        Retrieves a single item from the dataset.
+
+        Args:
+            item (int): Index of the item to retrieve.
+
+        Returns:
+            tuple: A tuple containing:
+                - None: Placeholder for word embeddings (not used).
+                - None: Placeholder for positional one-hot encodings (not used).
+                - str: The caption text.
+                - None: Placeholder for sentence length (not used).
+                - np.ndarray: A placeholder array with a single zero.
+                - int: The fixed length of the text data.
+                - None: Placeholder for additional data (not used).
+        """
         idx = self.pointer + item
         data = self.data_dict[self.name_list[idx]]
         text_list = data['text']
 
-        # Randomly select a caption
+        # Randomly select a caption from the text list
         text_data = random.choice(text_list)
         caption, tokens = text_data['caption'], text_data['tokens']
         return None, None, caption, None, np.array([0]), self.fixed_length, None
-        # fixed_length can be set from outside before sampling
 
 
 # A wrapper class for t2m original dataset for MDM purposes
@@ -833,7 +897,7 @@ class HumanML3D(data.Dataset):
             f"Disable offset augmentation: {opt.disable_offset_aug}\n"
         )
 
-        if mode == 'gt':
+        if mode == 'gt':  # gt = ground truth
             # used by T2M models (including evaluators)
             self.mean = np.load(pjoin(opt.meta_dir, f'{opt.dataset_name}_mean.npy'))
             self.std = np.load(pjoin(opt.meta_dir, f'{opt.dataset_name}_std.npy'))
@@ -841,6 +905,8 @@ class HumanML3D(data.Dataset):
             # used by our models
             self.mean = np.load(pjoin(opt.data_root, 'Mean.npy'))
             self.std = np.load(pjoin(opt.data_root, 'Std.npy'))
+        else:
+            pass
 
         if mode == 'eval':
             # used by T2M models (including evaluators)
@@ -849,6 +915,7 @@ class HumanML3D(data.Dataset):
             self.std_for_eval = np.load(pjoin(opt.meta_dir, f'{opt.dataset_name}_std.npy'))
 
         self.split_file = pjoin(opt.data_root, f'{split}.txt')
+
         if mode == 'text_only':
             self.t2m_dataset = TextOnlyDataset(self.opt, self.mean, self.std, self.split_file)
         else:

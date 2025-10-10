@@ -44,13 +44,37 @@ VIP_dict = {
 
 
 class WordVectorizer(object):
+    """
+    A class for handling word vectorization and part-of-speech (POS) encoding.
+
+    This class loads pre-trained word vectors and provides methods to retrieve
+    word embeddings and one-hot encoded POS vectors. It also supports special
+    handling for VIP (Very Important POS) categories.
+    """
+
     def __init__(self, meta_root, prefix):
-        vectors = np.load(pjoin(meta_root, '%s_data.npy'%prefix))
-        words = pickle.load(open(pjoin(meta_root, '%s_words.pkl'%prefix), 'rb'))
-        word2idx = pickle.load(open(pjoin(meta_root, '%s_idx.pkl'%prefix), 'rb'))
+        """
+        Initializes the WordVectorizer by loading word vectors, words, and their indices.
+
+        Args:
+            meta_root (str): The root directory containing the metadata files.
+            prefix (str): The prefix for the metadata files (e.g., 'train', 'test').
+        """
+        vectors = np.load(pjoin(meta_root, '%s_data.npy' % prefix))
+        words = pickle.load(open(pjoin(meta_root, '%s_words.pkl' % prefix), 'rb'))
+        word2idx = pickle.load(open(pjoin(meta_root, '%s_idx.pkl' % prefix), 'rb'))
         self.word2vec = {w: vectors[word2idx[w]] for w in words}
 
     def _get_pos_ohot(self, pos):
+        """
+        Converts a part-of-speech (POS) tag into a one-hot encoded vector.
+
+        Args:
+            pos (str): The POS tag to encode.
+
+        Returns:
+            np.ndarray: A one-hot encoded vector representing the POS tag.
+        """
         pos_vec = np.zeros(len(POS_enumerator))
         if pos in POS_enumerator:
             pos_vec[POS_enumerator[pos]] = 1
@@ -59,9 +83,27 @@ class WordVectorizer(object):
         return pos_vec
 
     def __len__(self):
+        """
+        Returns the number of words in the word-to-vector mapping.
+
+        Returns:
+            int: The number of words in the mapping.
+        """
         return len(self.word2vec)
 
     def __getitem__(self, item):
+        """
+        Retrieves the word vector and POS one-hot vector for a given word/POS pair.
+
+        Args:
+            item (str): A string in the format 'word/POS', where 'word' is the word
+                        and 'POS' is its part-of-speech tag.
+
+        Returns:
+            tuple: A tuple containing:
+                - np.ndarray: The word vector for the given word.
+                - np.ndarray: The one-hot encoded POS vector.
+        """
         word, pos = item.split('/')
         if word in self.word2vec:
             word_vec = self.word2vec[word]
