@@ -241,7 +241,36 @@ class Text2MotionDataset(data.Dataset):
 
 
 class Text2MotionDatasetV2(data.Dataset):
+    """
+    A PyTorch Dataset class for loading and processing text-to-motion data.
+
+    This dataset is designed to handle motion data and associated text descriptions,
+    with support for caching, filtering, and preprocessing.
+
+    Attributes:
+        opt (object): Configuration options for the dataset.
+        w_vectorizer (WordVectorizer): A word vectorizer for processing text tokens.
+        max_length (int): Maximum length of motion sequences.
+        pointer (int): Pointer for indexing into the dataset.
+        max_motion_length (int): Maximum allowed length of motion sequences.
+        mean (np.ndarray): Mean values for normalization.
+        std (np.ndarray): Standard deviation values for normalization.
+        length_arr (np.ndarray): Array of motion sequence lengths.
+        data_dict (dict): Dictionary containing motion and text data.
+        name_list (list): List of unique names for the data entries.
+    """
+
     def __init__(self, opt, mean, std, split_file, w_vectorizer):
+        """
+        Initializes the Text2MotionDatasetV2.
+
+        Args:
+            opt (object): Configuration options for the dataset.
+            mean (np.ndarray): Mean values for normalization.
+            std (np.ndarray): Standard deviation values for normalization.
+            split_file (str): Path to the split file containing the list of data IDs.
+            w_vectorizer (WordVectorizer): A word vectorizer for processing text tokens.
+        """
         self.opt = opt
         self.w_vectorizer = w_vectorizer
         self.max_length = 20
@@ -337,22 +366,60 @@ class Text2MotionDatasetV2(data.Dataset):
         self.reset_max_len(self.max_length)
 
     def reset_max_len(self, length):
+        """
+        Resets the maximum length of motion sequences.
+
+        Args:
+            length (int): The new maximum length.
+        """
         assert length <= self.max_motion_length
         self.pointer = np.searchsorted(self.length_arr, length)
         print("Pointer Pointing at %d" % self.pointer)
         self.max_length = length
 
     def inv_transform(self, data):
+        """
+        Applies inverse normalization to the data.
+
+        Args:
+            data (np.ndarray): The normalized data.
+
+        Returns:
+            np.ndarray: The denormalized data.
+        """
         return data * self.std + self.mean
 
     def __len__(self):
+        """
+        Returns the number of items in the dataset.
+
+        Returns:
+            int: The number of items in the dataset.
+        """
         return len(self.data_dict) - self.pointer
 
     def __getitem__(self, item):
+        """
+        Retrieves a single item from the dataset.
+
+        Args:
+            item (int): Index of the item to retrieve.
+
+        Returns:
+            tuple: A tuple containing:
+                - np.ndarray: Word embeddings.
+                - np.ndarray: One-hot encoded POS vectors.
+                - str: Caption text.
+                - int: Sentence length.
+                - np.ndarray: Normalized motion data.
+                - int or tuple: Motion length or (original length, cropped length).
+                - str: Concatenated tokens.
+        """
         idx = self.pointer + item
         key = self.name_list[idx]
         data = self.data_dict[key]
         motion, m_length, text_list = data['motion'], data['length'], data['text']
+
         # Randomly select a caption
         text_data = random.choice(text_list)
         caption, tokens = text_data['caption'], text_data['tokens']
@@ -405,6 +472,7 @@ class Text2MotionDatasetV2(data.Dataset):
             motion = np.concatenate([motion,
                                      np.zeros((self.max_motion_length - m_length, motion.shape[1]))
                                      ], axis=0)
+
         # print(word_embeddings.shape, motion.shape)
         # print(tokens)
 
