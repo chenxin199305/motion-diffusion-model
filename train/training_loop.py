@@ -272,19 +272,44 @@ class TrainLoop:
     def run_loop(self):
         """
         Executes the main training loop, including logging, saving, and evaluation.
+
+        This method iterates over the dataset for a specified number of epochs and steps,
+        performing the following tasks:
+        - Applies conditional modifiers to the input data.
+        - Moves data to the appropriate device (CPU/GPU).
+        - Executes a training step (forward and backward passes).
+        - Logs training metrics at specified intervals.
+        - Saves model checkpoints at specified intervals.
+        - Evaluates the model and generates samples during training if required.
+
+        The loop terminates early if the learning rate annealing steps are completed.
+
+        Attributes:
+            self.num_steps (int): Total number of training steps.
+            self.num_epochs (int): Total number of training epochs.
+            self.lr_anneal_steps (int): Steps for learning rate annealing.
+            self.log_interval (int): Interval for logging metrics.
+            self.save_interval (int): Interval for saving checkpoints.
+            self.step (int): Current training step.
+            self.device (torch.device): Device to run the training on (CPU or GPU).
         """
         print('train steps:', self.num_steps)
         for epoch in range(self.num_epochs):
             print(f'Starting epoch {epoch}')
             for motion, cond in tqdm(self.data):
+                # Stop training if learning rate annealing steps are completed
                 if not (not self.lr_anneal_steps or self.total_step() < self.lr_anneal_steps):
                     break
 
+                # Apply conditional modifiers and move data to the appropriate device
                 self.cond_modifiers(cond['y'], motion)  # Modify in-place for efficiency
                 motion = motion.to(self.device)
                 cond['y'] = {key: val.to(self.device) if torch.is_tensor(val) else val for key, val in cond['y'].items()}
 
+                # Execute a training step
                 self.run_step(motion, cond)
+
+                # Log training metrics at specified intervals
                 if self.total_step() % self.log_interval == 0:
                     for k, v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
@@ -295,6 +320,7 @@ class TrainLoop:
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.total_step(), group_name='Loss')
 
+                # Save checkpoints, evaluate, and generate samples at specified intervals
                 if self.total_step() % self.save_interval == 0:
                     self.save()
                     self.model.eval()
@@ -306,13 +332,16 @@ class TrainLoop:
                     if self.args.use_ema:
                         self.model_avg.train()
 
-                    # Run for a finite amount of time in integration tests.
+                    # Exit early for integration tests
                     if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.total_step() > 0:
                         return
                 self.step += 1
+
+            # Stop training if learning rate annealing steps are completed
             if not (not self.lr_anneal_steps or self.total_step() < self.lr_anneal_steps):
                 break
-        # Save the last checkpoint if it wasn't already saved.
+
+        # Save the last checkpoint if it wasn't already saved
         if (self.total_step() - 1) % self.save_interval != 0:
             self.save()
             self.evaluate()
@@ -320,19 +349,47 @@ class TrainLoop:
     def evaluate(self):
         """
         Runs evaluation during training and logs the results.
+
+        This method performs evaluation based on the dataset type and logs the evaluation metrics.
+        It supports two evaluation modes:
+        1. For datasets with an evaluation wrapper (`eval_wrapper`), it runs a detailed evaluation loop.
+        2. For specific datasets like 'humanact12' or 'uestc', it uses a predefined evaluation function.
+
+        The evaluation results are logged to the training platform for monitoring.
+
+        Attributes:
+            self.args.eval_during_training (bool): Flag to enable or disable evaluation during training.
+            self.eval_wrapper (object): Wrapper for evaluation, used for datasets like 'humanml'.
+            self.eval_gt_data (DataLoader): Ground truth data for evaluation.
+            self.eval_data (DataLoader): Generated data for evaluation.
+            self.args.eval_rep_times (int): Number of replication times for evaluation.
+            self.args.eval_num_samples (int): Number of samples to evaluate.
+            self.args.eval_batch_size (int): Batch size for evaluation.
+            self.args.unconstrained (bool): Flag for unconstrained evaluation.
+            self.dataset (str): Name of the dataset being used.
+            self.save_dir (str): Directory to save evaluation logs.
+            self.train_platform (object): Platform for logging evaluation metrics.
+            self.model (torch.nn.Module): The model being evaluated.
+            self.diffusion (object): Diffusion process object.
+            self.step (int): Current training step.
         """
         if not self.args.eval_during_training:
             return
+
         start_eval = time.time()
+
         if self.eval_wrapper is not None:
+            # Evaluation for datasets with an evaluation wrapper
             print('Running evaluation loop: [Should take about 90 min]')
             log_file = os.path.join(self.save_dir, f'eval_humanml_{(self.total_step()):09d}.log')
             diversity_times = 300
-            mm_num_times = 0  # mm is super slow hence we won't run it during training
+            mm_num_times = 0  # MM evaluation is skipped during training for efficiency
             eval_dict = eval_humanml.evaluation(
                 self.eval_wrapper, self.eval_gt_data, self.eval_data, log_file,
                 replication_times=self.args.eval_rep_times, diversity_times=diversity_times, mm_num_times=mm_num_times, run_mm=False)
             print(eval_dict)
+
+            # Log evaluation metrics
             for k, v in eval_dict.items():
                 if k.startswith('R_precision'):
                     for i in range(len(v)):
@@ -344,12 +401,15 @@ class TrainLoop:
                                                       group_name='Eval')
 
         elif self.dataset in ['humanact12', 'uestc']:
+            # Evaluation for specific datasets
             eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times, num_samples=self.args.eval_num_samples,
                                         batch_size=self.args.eval_batch_size, device=self.device, guidance_param=1,
                                         dataset=self.dataset, unconstrained=self.args.unconstrained,
                                         model_path=os.path.join(self.save_dir, self.ckpt_file_name()))
             eval_dict = eval_humanact12_uestc.evaluate(eval_args, model=self.model, diffusion=self.diffusion, data=self.data.dataset)
             print(f'Evaluation results on {self.dataset}: {sorted(eval_dict["feats"].items())}')
+
+            # Log evaluation metrics
             for k, v in eval_dict["feats"].items():
                 if 'unconstrained' not in k:
                     self.train_platform.report_scalar(name=k, value=np.array(v).astype(float).mean(), iteration=self.step, group_name='Eval')
