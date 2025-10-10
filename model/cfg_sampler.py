@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from copy import deepcopy
 
+
 # A wrapper model for Classifier-free guidance **SAMPLING** only
 # https://arxiv.org/abs/2207.12598
 class ClassifierFreeSampleModel(nn.Module):
@@ -30,4 +31,3 @@ class ClassifierFreeSampleModel(nn.Module):
         out = self.model(x, timesteps, y)
         out_uncond = self.model(x, timesteps, y_uncond)
         return out_uncond + (y['scale'].view(-1, 1, 1, 1) * (out - out_uncond))
-

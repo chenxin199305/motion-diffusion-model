@@ -65,6 +65,7 @@ class BERT(nn.Module):
                 - torch.Tensor: The attention mask indicating valid tokens.
         """
         # Tokenize the input texts 对文本进行tokenize
+        # Setting return_tensors='pt' returns PyTorch tensors. Alternatively, you can use 'tf' for TensorFlow or 'np' for NumPy.
         encoded_inputs = self.tokenizer(texts, return_tensors="pt", padding=True)
 
         # Generate embeddings using the text model 通过BERT模型获取输出
@@ -82,6 +83,7 @@ if __name__ == "__main__":
     bert_model = load_bert("bert-base-uncased")
 
     # 处理文本
+    # The tokenizer converts the input sentences into a format that the model can understand.
     texts = ["Hello world!", "This is a test."]
     embeddings, attention_mask = bert_model(texts)
 
