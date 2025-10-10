@@ -17,6 +17,7 @@ from train.train_platforms import ClearmlPlatform, TensorboardPlatform, NoPlatfo
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
+
 def evaluate_matching_score(eval_wrapper, motion_loaders, file):
     match_score_dict = OrderedDict({})
     R_precision_dict = OrderedDict({})
@@ -63,7 +64,7 @@ def evaluate_matching_score(eval_wrapper, motion_loaders, file):
 
         line = f'---> [{motion_loader_name}] R_precision: '
         for i in range(len(R_precision)):
-            line += '(top %d): %.4f ' % (i+1, R_precision[i])
+            line += '(top %d): %.4f ' % (i + 1, R_precision[i])
         print(line)
         print(line, file=file, flush=True)
 
@@ -136,7 +137,7 @@ def get_metric_statistics(values, replication_times):
     return mean, conf_interval
 
 
-def evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replication_times, 
+def evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replication_times,
                diversity_times, mm_num_times, run_mm=False, eval_platform=None):
     with open(log_file, 'w') as f:
         all_metrics = OrderedDict({'Matching Score': OrderedDict({}),
@@ -205,7 +206,6 @@ def evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replicati
                     else:
                         all_metrics['MultiModality'][key] += [item]
 
-
         # print(all_metrics['Diversity'])
         mean_dict = {}
         for metric_name, metric_dict in all_metrics.items():
@@ -222,27 +222,43 @@ def evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replicati
                 elif isinstance(mean, np.ndarray):
                     line = f'---> [{model_name}]'
                     for i in range(len(mean)):
-                        line += '(top %d) Mean: %.4f CInt: %.4f;' % (i+1, mean[i], conf_interval[i])
+                        line += '(top %d) Mean: %.4f CInt: %.4f;' % (i + 1, mean[i], conf_interval[i])
                     print(line)
                     print(line, file=f, flush=True)
-                    
+
         # log results
         if eval_platform is not None:
             for k, v in mean_dict.items():
                 if k.startswith('R_precision'):
                     for i in range(len(v)):
                         eval_platform.report_scalar(name=f'top{i + 1}_' + k, value=v[i],
-                                                            iteration=1, group_name='Eval')
+                                                    iteration=1, group_name='Eval')
                 else:
                     eval_platform.report_scalar(name=k, value=v, iteration=1, group_name='Eval')
-        
+
         return mean_dict
 
 
 if __name__ == '__main__':
+    """
+    Main entry point for the evaluation script. This script evaluates a trained model on the HumanML3D dataset
+    using various metrics such as Matching Score, FID, Diversity, and MultiModality.
+
+    Steps:
+    1. Parse evaluation arguments and set up the environment.
+    2. Configure logging and evaluation platforms.
+    3. Load the dataset and model checkpoints.
+    4. Perform evaluation based on the specified mode and metrics.
+    """
+
+    # Parse evaluation arguments and fix random seed for reproducibility
     args = evaluation_parser()
     fixseed(args.seed)
-    args.batch_size = 32 # This must be 32! Don't change it! otherwise it will cause a bug in R precision calc!
+
+    # Set batch size (must be 32 to avoid bugs in R precision calculation)
+    args.batch_size = 32  # This must be 32! Don't change it! otherwise it will cause a bug in R precision calc!
+
+    # Generate log file name based on model path and evaluation parameters
     name = os.path.basename(os.path.dirname(args.model_path))
     niter = os.path.basename(args.model_path).replace('model', '').replace('.pt', '')
     log_name = 'eval_humanml_{}_{}'.format(name, niter)
@@ -250,16 +266,19 @@ if __name__ == '__main__':
         log_name += f'_gscale{args.guidance_param}'
     log_name += f'_{args.eval_mode}'
     log_file = os.path.join(os.path.dirname(args.model_path), log_name + '.log')
-    save_dir = os.path.dirname(log_file)  # has not been tested with WandB
+    save_dir = os.path.dirname(log_file)  # Directory for saving logs and results
 
     print(f'Will save to log file [{log_file}]')
 
+    # Initialize the evaluation platform (e.g., ClearML, Tensorboard, WandB)
     eval_platform_type = eval(args.train_platform_type)
     eval_platform = eval_platform_type(save_dir, name=log_name)
     eval_platform.report_args(args, name='Args')
 
+    # Configure evaluation mode and parameters
     print(f'Eval mode [{args.eval_mode}]')
     if args.eval_mode == 'debug':
+        # Debug mode: limited samples and replications for quick testing
         num_samples_limit = 1000  # None means no limit (eval over all dataset)
         run_mm = False
         mm_num_samples = 0
@@ -268,14 +287,16 @@ if __name__ == '__main__':
         diversity_times = 300
         replication_times = 5  # about 3 Hrs
     elif args.eval_mode == 'wo_mm':
+        # Evaluation without multimodality
         num_samples_limit = 1000
         run_mm = False
         mm_num_samples = 0
         mm_num_repeats = 0
         mm_num_times = 0
         diversity_times = 300
-        replication_times = 20 # about 12 Hrs
+        replication_times = 20  # about 12 Hrs
     elif args.eval_mode == 'mm_short':
+        # Short multimodality evaluation
         num_samples_limit = 1000
         run_mm = True
         mm_num_samples = 100
@@ -284,47 +305,57 @@ if __name__ == '__main__':
         diversity_times = 300
         replication_times = 5  # about 15 Hrs
     else:
+        # Raise an error for unsupported evaluation modes
         raise ValueError()
 
-
+    # Set up distributed utilities and logger
     dist_util.setup_dist(args.device)
     logger.configure()
 
+    # Load ground truth and generated data loaders
     logger.log("creating data loader...")
     split = 'test'
     gt_loader = get_dataset_loader(name=args.dataset, batch_size=args.batch_size, num_frames=None, split=split, hml_mode='gt')
-    # gen_loader = get_dataset_loader(name=args.dataset, batch_size=args.batch_size, num_frames=None, split=split, hml_mode='eval')
-    # added new features + support for prefix completion:
     gen_loader = get_dataset_loader(name=args.dataset, batch_size=args.batch_size, num_frames=None, split=split, hml_mode='eval',
-                                    fixed_len=args.context_len+args.pred_len, pred_len=args.pred_len, device=dist_util.dev(),
+                                    fixed_len=args.context_len + args.pred_len, pred_len=args.pred_len, device=dist_util.dev(),
                                     autoregressive=args.autoregressive)
 
+    # Get the number of actions in the dataset
     num_actions = gen_loader.dataset.num_actions
 
+    # Create the model and diffusion process
     logger.log("Creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args, gen_loader)
 
+    # Load the model checkpoint
     logger.log(f"Loading checkpoints from [{args.model_path}]...")
     load_saved_model(model, args.model_path, use_avg=args.use_ema)
 
+    # Wrap the model with a classifier-free sampler if guidance is enabled
     if args.guidance_param != 1:
-        model = ClassifierFreeSampleModel(model)   # wrapping model with the classifier-free sampler
+        model = ClassifierFreeSampleModel(model)  # wrapping model with the classifier-free sampler
     model.to(dist_util.dev())
-    model.eval()  # disable random masking
+    model.eval()  # Disable random masking during evaluation
 
+    # Define motion loaders for evaluation
     eval_motion_loaders = {
         ################
         ## HumanML3D Dataset##
         ################
         'vald': lambda: get_mdm_loader(args,
-            model=model, diffusion=diffusion, batch_size=args.batch_size,
-            ground_truth_loader=gen_loader, mm_num_samples=mm_num_samples, mm_num_repeats=mm_num_repeats, 
-            max_motion_length=gt_loader.dataset.opt.max_motion_length, num_samples_limit=num_samples_limit, 
-            scale=args.guidance_param
-        )
+                                       model=model, diffusion=diffusion, batch_size=args.batch_size,
+                                       ground_truth_loader=gen_loader, mm_num_samples=mm_num_samples, mm_num_repeats=mm_num_repeats,
+                                       max_motion_length=gt_loader.dataset.opt.max_motion_length, num_samples_limit=num_samples_limit,
+                                       scale=args.guidance_param
+                                       )
     }
 
+    # Initialize the evaluation wrapper
     eval_wrapper = EvaluatorMDMWrapper(args.dataset, dist_util.dev())
-    evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replication_times, 
+
+    # Perform evaluation
+    evaluation(eval_wrapper, gt_loader, eval_motion_loaders, log_file, replication_times,
                diversity_times, mm_num_times, run_mm=run_mm, eval_platform=eval_platform)
+
+    # Close the evaluation platform
     eval_platform.close()
