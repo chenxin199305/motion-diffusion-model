@@ -152,21 +152,34 @@ class TrainLoop:
         if args.dataset in ['kit', 'humanml'] and args.eval_during_training:
             mm_num_samples = 0  # mm is super slow hence we won't run it during training
             mm_num_repeats = 0  # mm is super slow hence we won't run it during training
-            gen_loader = get_dataset_loader(name=args.dataset, batch_size=args.eval_batch_size, num_frames=None,
+            gen_loader = get_dataset_loader(name=args.dataset,
+                                            batch_size=args.eval_batch_size,
+                                            num_frames=None,
                                             split=args.eval_split,
                                             hml_mode='eval',
                                             autoregressive=args.autoregressive,
-                                            fixed_len=args.context_len + args.pred_len, pred_len=args.pred_len, device=dist_util.dev())
+                                            fixed_len=args.context_len + args.pred_len,
+                                            pred_len=args.pred_len,
+                                            device=dist_util.dev())
 
-            self.eval_gt_data = get_dataset_loader(name=args.dataset, batch_size=args.eval_batch_size, num_frames=None,
+            self.eval_gt_data = get_dataset_loader(name=args.dataset,
+                                                   batch_size=args.eval_batch_size,
+                                                   num_frames=None,
                                                    split=args.eval_split,
-                                                   hml_mode='gt', device=dist_util.dev())
+                                                   hml_mode='gt',
+                                                   device=dist_util.dev())
             self.eval_wrapper = EvaluatorMDMWrapper(args.dataset, dist_util.dev())
             self.eval_data = {
                 'test': lambda: eval_humanml.get_mdm_loader(self.args,
-                                                            self.model_for_eval, diffusion, args.eval_batch_size,
-                                                            gen_loader, mm_num_samples, mm_num_repeats, gen_loader.dataset.opt.max_motion_length,
-                                                            args.eval_num_samples, scale=args.gen_guidance_param,
+                                                            self.model_for_eval,
+                                                            diffusion,
+                                                            args.eval_batch_size,
+                                                            gen_loader,
+                                                            mm_num_samples,
+                                                            mm_num_repeats,
+                                                            gen_loader.dataset.opt.max_motion_length,
+                                                            args.eval_num_samples,
+                                                            scale=args.gen_guidance_param,
                                                             )
             }
         self.use_ddp = False
@@ -267,7 +280,10 @@ class TrainLoop:
                                                       self.data.dataset.mean[None, :, None, None],
                                                       self.data.dataset.std[None, :, None, None],
                                                       cond['lengths'],
-                                                      self.data.dataset.t2m_dataset.opt.joints_num, self.model.all_goal_joint_names, cond['target_joint_names'], cond['is_heading']).detach()
+                                                      self.data.dataset.t2m_dataset.opt.joints_num,
+                                                      self.model.all_goal_joint_names,
+                                                      cond['target_joint_names'],
+                                                      cond['is_heading']).detach()
 
     def run_loop(self):
         """
@@ -402,11 +418,18 @@ class TrainLoop:
 
         elif self.dataset in ['humanact12', 'uestc']:
             # Evaluation for specific datasets
-            eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times, num_samples=self.args.eval_num_samples,
-                                        batch_size=self.args.eval_batch_size, device=self.device, guidance_param=1,
-                                        dataset=self.dataset, unconstrained=self.args.unconstrained,
+            eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times,
+                                        num_samples=self.args.eval_num_samples,
+                                        batch_size=self.args.eval_batch_size,
+                                        device=self.device,
+                                        guidance_param=1,
+                                        dataset=self.dataset,
+                                        unconstrained=self.args.unconstrained,
                                         model_path=os.path.join(self.save_dir, self.ckpt_file_name()))
-            eval_dict = eval_humanact12_uestc.evaluate(eval_args, model=self.model, diffusion=self.diffusion, data=self.data.dataset)
+            eval_dict = eval_humanact12_uestc.evaluate(eval_args,
+                                                       model=self.model,
+                                                       diffusion=self.diffusion,
+                                                       data=self.data.dataset)
             print(f'Evaluation results on {self.dataset}: {sorted(eval_dict["feats"].items())}')
 
             # Log evaluation metrics
