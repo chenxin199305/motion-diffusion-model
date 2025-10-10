@@ -1,17 +1,19 @@
 from torch.utils.data import DataLoader
+
 from data_loaders.tensors import collate as all_collate
 from data_loaders.tensors import t2m_collate, t2m_prefix_collate
 
 
 def get_dataset_class(name):
     if name == "amass":
-        from .amass import AMASS
+        # TODO: support AMASS dataset
+        from data_loaders.amass import AMASS
         return AMASS
     elif name == "uestc":
-        from .a2m.uestc import UESTC
+        from data_loaders.a2m.uestc import UESTC
         return UESTC
     elif name == "humanact12":
-        from .a2m.humanact12poses import HumanAct12Poses
+        from data_loaders.a2m.humanact12poses import HumanAct12Poses
         return HumanAct12Poses
     elif name == "humanml":
         from data_loaders.humanml.data.dataset import HumanML3D
@@ -35,14 +37,29 @@ def get_collate_fn(name, hml_mode='train', pred_len=0, batch_size=1):
         return all_collate
 
 
-def get_dataset(name, num_frames, split='train', hml_mode='train', abs_path='.', fixed_len=0,
-                device=None, autoregressive=False, cache_path=None):
+def get_dataset(name,
+                num_frames,
+                split='train',
+                hml_mode='train',
+                abs_path='.',
+                fixed_len=0,
+                device=None,
+                autoregressive=False,
+                cache_path=None):
     DATA = get_dataset_class(name)
+
     if name in ["humanml", "kit"]:
-        dataset = DATA(split=split, num_frames=num_frames, mode=hml_mode, abs_path=abs_path, fixed_len=fixed_len,
-                       device=device, autoregressive=autoregressive)
+        dataset = DATA(split=split,
+                       num_frames=num_frames,
+                       mode=hml_mode,
+                       abs_path=abs_path,
+                       fixed_len=fixed_len,
+                       device=device,
+                       autoregressive=autoregressive)
     else:
-        dataset = DATA(split=split, num_frames=num_frames)
+        dataset = DATA(split=split,
+                       num_frames=num_frames)
+
     return dataset
 
 
@@ -65,7 +82,7 @@ def get_dataset_loader(name,
 
     collate = get_collate_fn(name,
                              hml_mode,
-                              pred_len,
+                             pred_len,
                              batch_size)
 
     loader = DataLoader(

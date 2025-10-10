@@ -20,6 +20,38 @@ def collate_fn(batch):
     return default_collate(batch)
 
 
+'''For demo usa of dataset setup'''
+
+
+class CustomDataset(data.Dataset):
+    def __init__(self, data, labels, transform=None):
+        """
+        初始化数据集
+        Args:
+            data: 输入数据
+            labels: 标签
+            transform: 数据预处理变换
+        """
+        self.data = data
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        """返回数据集大小"""
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        """根据索引获取单个样本"""
+        sample = self.data[idx]
+        label = self.labels[idx]
+
+        # 应用数据变换
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample, label
+
+
 '''For use of training text-2-motion generative model'''
 
 
