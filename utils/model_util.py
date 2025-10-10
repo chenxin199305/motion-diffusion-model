@@ -128,25 +128,45 @@ def get_model_args(args, data):
 
 
 def create_gaussian_diffusion(args):
-    # default params
-    predict_xstart = True  # 总是预测原始数据x0
-    steps = args.diffusion_steps  # 扩散步数
-    scale_beta = 1.  # beta不缩放
-    timestep_respacing = ''  # 时间步重采样（用于DDIM）
-    learn_sigma = False  # 不学习方差
-    rescale_timesteps = False  # 不重新缩放时间步
+    """
+    Creates and returns a Gaussian diffusion process based on the provided arguments.
 
+    Args:
+        args (argparse.Namespace): The configuration arguments for the diffusion process, including:
+            - diffusion_steps (int): The number of diffusion steps.
+            - noise_schedule (str): The noise schedule to use.
+            - sigma_small (bool): Whether to use a small sigma for variance.
+            - lambda_vel (float): The weight for velocity loss.
+            - lambda_rcxyz (float): The weight for coordinate constraint loss.
+            - lambda_fc (float): The weight for physical constraint loss.
+            - lambda_target_loc (float, optional): The weight for target location loss.
+
+    Returns:
+        SpacedDiffusion: A configured diffusion process object.
+    """
+    # Default parameters
+    predict_xstart = True  # Always predict the original data x0
+    steps = args.diffusion_steps  # Number of diffusion steps
+    scale_beta = 1.0  # No scaling for beta
+    timestep_respacing = ''  # Time step resampling (used for DDIM)
+    learn_sigma = False  # Do not learn variance
+    rescale_timesteps = False  # Do not rescale time steps
+
+    # Get the beta schedule based on the noise schedule and steps
     betas = gd.get_named_beta_schedule(args.noise_schedule, steps, scale_beta)
-    loss_type = gd.LossType.MSE  # 使用MSE损失
+    loss_type = gd.LossType.MSE  # Use Mean Squared Error (MSE) loss
 
+    # Default to using all time steps if no resampling is specified
     if not timestep_respacing:
-        timestep_respacing = [steps]  # 默认使用所有时间步
+        timestep_respacing = [steps]
 
+    # Check if lambda_target_loc is provided, otherwise set to default
     if hasattr(args, 'lambda_target_loc'):
         lambda_target_loc = args.lambda_target_loc
     else:
-        lambda_target_loc = 0.  # 默认值
+        lambda_target_loc = 0.0  # Default value
 
+    # Create and return the SpacedDiffusion object
     return SpacedDiffusion(
         use_timesteps=space_timesteps(steps, timestep_respacing),
         betas=betas,
@@ -164,25 +184,41 @@ def create_gaussian_diffusion(args):
         ),
         loss_type=loss_type,
         rescale_timesteps=rescale_timesteps,
-        lambda_vel=args.lambda_vel,  # 速度损失权重
-        lambda_rcxyz=args.lambda_rcxyz,  # 可能涉及坐标约束的权重
-        lambda_fc=args.lambda_fc,  # 可能涉及物理约束的权重
-        lambda_target_loc=lambda_target_loc,  # 目标位置损失权重
+        lambda_vel=args.lambda_vel,  # Weight for velocity loss
+        lambda_rcxyz=args.lambda_rcxyz,  # Weight for coordinate constraint loss
+        lambda_fc=args.lambda_fc,  # Weight for physical constraint loss
+        lambda_target_loc=lambda_target_loc,  # Weight for target location loss
     )
 
 
-def load_saved_model(model, model_path, use_avg: bool = False):  # use_avg_model
+def load_saved_model(model, model_path, use_avg: bool = False):
+    """
+    Loads a saved model from a checkpoint file and updates the provided model.
+
+    Args:
+        model (torch.nn.Module): The model to update with the loaded state dictionary.
+        model_path (str): The path to the checkpoint file.
+        use_avg (bool, optional): Whether to load the averaged model state if available. Defaults to False.
+
+    Returns:
+        torch.nn.Module: The updated model with the loaded state dictionary.
+    """
+    # Load the state dictionary from the checkpoint file
     state_dict = torch.load(model_path, map_location='cpu')
-    # Use average model when possible
+
+    # Use the averaged model state if specified and available
     if use_avg and 'model_avg' in state_dict.keys():
-        # if use_avg_model:
         print('loading avg model')
         state_dict = state_dict['model_avg']
     else:
+        # Load the standard model state if available
         if 'model' in state_dict:
             print('loading model without avg')
             state_dict = state_dict['model']
         else:
+            # Fallback if no averaged model is available
             print('checkpoint has no avg model, loading as usual.')
+
+    # Update the model with the loaded state dictionary
     load_model_wo_clip(model, state_dict)
     return model
