@@ -423,6 +423,13 @@ class TrainLoop:
         """
         Executes a single training step, including forward and backward passes.
 
+        This method performs the following tasks:
+        1. Executes the forward and backward passes for the given batch of data.
+        2. Optimizes the model parameters using the optimizer.
+        3. Updates the exponential moving average (EMA) of the model parameters, if enabled.
+        4. Adjusts the learning rate based on the training progress.
+        5. Logs the current training step and the number of samples processed.
+
         Args:
             batch (torch.Tensor): Input batch of motion data.
             cond (dict): Conditional inputs for the model.
