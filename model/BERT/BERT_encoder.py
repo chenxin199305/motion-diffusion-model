@@ -87,3 +87,7 @@ if __name__ == "__main__":
 
     # embeddings包含每个token的上下文表示
     # attention_mask标识哪些位置是有效token
+
+    print("Embeddings shape:", embeddings.shape)
+    print("Attention mask shape:", attention_mask.shape)
+    print("embeddings:", embeddings)
