@@ -1,3 +1,16 @@
+"""
+This module defines the `TrainLoop` class, which manages the training process for a diffusion model.
+It includes methods for training, evaluation, checkpointing, and logging.
+
+Classes:
+    TrainLoop: Handles the training loop, evaluation, and model checkpointing.
+
+Functions:
+    parse_resume_step_from_filename(filename): Parses the step number from a checkpoint filename.
+    get_blob_logdir(): Returns the directory for saving checkpoints and logs.
+    log_loss_dict(diffusion, ts, losses): Logs loss values and their quantiles.
+"""
+
 import copy
 import functools
 import os
@@ -34,7 +47,40 @@ INITIAL_LOG_LOSS_SCALE = 20.0
 
 
 class TrainLoop:
+    """
+    A class to manage the training loop for a diffusion model.
+
+    Attributes:
+        args (Namespace): Training arguments and configurations.
+        train_platform (object): Platform for logging and monitoring (e.g., WandB, Tensorboard).
+        model (torch.nn.Module): The model being trained.
+        diffusion (object): Diffusion process object.
+        data (DataLoader): DataLoader for the training dataset.
+        batch_size (int): Batch size for training.
+        lr (float): Learning rate for the optimizer.
+        log_interval (int): Interval for logging training metrics.
+        save_interval (int): Interval for saving model checkpoints.
+        num_steps (int): Total number of training steps.
+        num_epochs (int): Total number of training epochs.
+        device (torch.device): Device to run the training on (CPU or GPU).
+        opt (torch.optim.Optimizer): Optimizer for training.
+        schedule_sampler (object): Sampler for selecting timesteps during training.
+        eval_wrapper (object): Wrapper for evaluation during training.
+    """
+
     def __init__(self, args, train_platform, model, diffusion, data):
+        """
+        Initializes the TrainLoop class.
+
+        Args:
+            args (Namespace): Training arguments and configurations.
+            train_platform (object): Platform for logging and monitoring.
+            model (torch.nn.Module): The model to be trained.
+            diffusion (object): Diffusion process object.
+            data (DataLoader): DataLoader for the training dataset.
+        """
+
+        # Initialization of attributes and configurations
         self.args = args
         self.dataset = args.dataset
         self.train_platform = train_platform
@@ -127,6 +173,9 @@ class TrainLoop:
         self.ddp_model = self.model
 
     def _load_and_sync_parameters(self):
+        """
+        Loads model parameters from a checkpoint and synchronizes them across devices.
+        """
         resume_checkpoint = self.find_resume_checkpoint() or self.resume_checkpoint
 
         if resume_checkpoint:
@@ -159,6 +208,9 @@ class TrainLoop:
             # )
 
     def _load_optimizer_state(self):
+        """
+        Loads the optimizer state from a checkpoint, including gradient scaler state for mixed precision training.
+        """
         main_checkpoint = self.find_resume_checkpoint() or self.resume_checkpoint
         opt_checkpoint = bf.join(
             bf.dirname(main_checkpoint), f"opt{self.resume_step:09}.pt"
@@ -189,10 +241,24 @@ class TrainLoop:
             self.opt.param_groups[0]['capturable'] = True
 
     def cond_modifiers(self, cond, motion):
+        """
+        Applies conditional modifiers to the input data.
+
+        Args:
+            cond (dict): Conditional inputs.
+            motion (torch.Tensor): Motion data.
+        """
         # All modifiers must be in-place
         self.target_cond_modifier(cond, motion)
 
     def target_cond_modifier(self, cond, motion):
+        """
+        Modifies the target conditions for multi-target conditioning.
+
+        Args:
+            cond (dict): Conditional inputs.
+            motion (torch.Tensor): Motion data.
+        """
         if self.args.multi_target_cond:
             batch_size = motion.shape[0]
             cond['target_joint_names'], cond['is_heading'] = sample_goal(batch_size, motion.device, self.args.target_joint_names)
@@ -204,6 +270,9 @@ class TrainLoop:
                                                       self.data.dataset.t2m_dataset.opt.joints_num, self.model.all_goal_joint_names, cond['target_joint_names'], cond['is_heading']).detach()
 
     def run_loop(self):
+        """
+        Executes the main training loop, including logging, saving, and evaluation.
+        """
         print('train steps:', self.num_steps)
         for epoch in range(self.num_epochs):
             print(f'Starting epoch {epoch}')
@@ -249,6 +318,9 @@ class TrainLoop:
             self.evaluate()
 
     def evaluate(self):
+        """
+        Runs evaluation during training and logs the results.
+        """
         if not self.args.eval_during_training:
             return
         start_eval = time.time()
@@ -288,6 +360,13 @@ class TrainLoop:
         print(f'Evaluation time: {round(end_eval - start_eval) / 60}min')
 
     def run_step(self, batch, cond):
+        """
+        Executes a single training step, including forward and backward passes.
+
+        Args:
+            batch (torch.Tensor): Input batch of motion data.
+            cond (dict): Conditional inputs for the model.
+        """
         self.forward_backward(batch, cond)
         self.mp_trainer.optimize(self.opt)
         self.update_average_model()
@@ -295,6 +374,9 @@ class TrainLoop:
         self.log_step()
 
     def update_average_model(self):
+        """
+        Updates the exponential moving average (EMA) of the model parameters.
+        """
         # update the average model using exponential moving average
         if self.args.use_ema:
             # master params are FP32
@@ -308,6 +390,13 @@ class TrainLoop:
                     param.data, alpha=1 - self.args.avg_model_beta)
 
     def forward_backward(self, batch, cond):
+        """
+        Performs the forward and backward passes for a batch of data.
+
+        Args:
+            batch (torch.Tensor): Input batch of motion data.
+            cond (dict): Conditional inputs for the model.
+        """
         self.mp_trainer.zero_grad()
         for i in range(0, batch.shape[0], self.microbatch):
             # Eliminates the microbatch feature
@@ -345,6 +434,9 @@ class TrainLoop:
             self.mp_trainer.backward(loss)
 
     def _anneal_lr(self):
+        """
+        Adjusts the learning rate based on the training progress.
+        """
         if not self.lr_anneal_steps:
             return
         frac_done = self.total_step() / self.lr_anneal_steps
@@ -353,13 +445,25 @@ class TrainLoop:
             param_group["lr"] = lr
 
     def log_step(self):
+        """
+        Logs the current training step and the number of samples processed.
+        """
         logger.logkv("step", self.total_step())
         logger.logkv("samples", (self.total_step() + 1) * self.global_batch)
 
     def ckpt_file_name(self):
+        """
+        Generates the filename for the current checkpoint.
+
+        Returns:
+            str: Checkpoint filename.
+        """
         return f"model{(self.total_step()):09d}.pt"
 
     def generate_during_training(self):
+        """
+        Generates samples during training and logs them to the training platform.
+        """
         if not self.args.gen_during_training:
             return
         gen_args = copy.deepcopy(self.args)
@@ -378,13 +482,21 @@ class TrainLoop:
                                          local_path=all_sample_save_path)
 
     def find_resume_checkpoint(self) -> Optional[str]:
-        '''look for all file in save directory in the pattent of model{number}.pt
-            and return the one with the highest step number.
+        """
+        Finds the most recent checkpoint in the save directory.
+
+        Returns:
+            Optional[str]: Path to the most recent checkpoint, or None if no checkpoint exists.
+        """
+
+        """
+        look for all file in save directory in the pattent of model{number}.pt
+        and return the one with the highest step number.
 
         TODO: Implement this function (alredy existing in MDM), so that find model will call it in case a ckpt exist.
         TODO: Change call for find_resume_checkpoint and send save_dir as arg.
         TODO: This means ignoring the flag of resume_checkpoint in case some other ckpts exists in that dir!
-        '''
+        """
 
         matches = {file: re.match(r'model(\d+).pt$', file) for file in os.listdir(self.args.save_dir)}
         models = {int(match.group(1)): file for file, match in matches.items() if match}
@@ -441,6 +553,13 @@ class TrainLoop:
 
 def parse_resume_step_from_filename(filename):
     """
+    Calculates the total number of training steps completed.
+
+    Returns:
+        int: Total number of steps.
+    """
+
+    """
     Parse filenames of the form path/to/modelNNNNNN.pt, where NNNNNN is the
     checkpoint's number of steps.
     """
@@ -455,12 +574,26 @@ def parse_resume_step_from_filename(filename):
 
 
 def get_blob_logdir():
+    """
+    Returns the directory for saving checkpoints and logs.
+
+    Returns:
+        str: Directory path for logs and checkpoints.
+    """
     # You can change this to be a separate path to save checkpoints to
     # a blobstore or some external drive.
     return logger.get_dir()
 
 
 def log_loss_dict(diffusion, ts, losses):
+    """
+    Logs loss values and their quantiles.
+
+    Args:
+        diffusion (object): Diffusion process object.
+        ts (torch.Tensor): Timesteps for the losses.
+        losses (dict): Dictionary of loss values.
+    """
     for key, values in losses.items():
         logger.logkv_mean(key, values.mean().item())
         # Log the quantiles (four quartiles, in particular).
