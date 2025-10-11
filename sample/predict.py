@@ -46,7 +46,7 @@ def get_args():
     args.sigma_small = True
     args.lambda_vel = 0.0
     args.lambda_rcxyz = 0.0
-    args.lambda_fc   = 0.0
+    args.lambda_fc = 0.0
     return args
 
 
@@ -61,10 +61,10 @@ class Predictor(BasePredictor):
 
         # temporary data
         self.data = get_dataset_loader(name=self.args.dataset,
-                                  batch_size=1,
-                                  num_frames=196,
-                                  split='test',
-                                  hml_mode='text_only')
+                                       batch_size=1,
+                                       num_frames=196,
+                                       split='test',
+                                       hml_mode='text_only')
 
         self.data.fixed_length = float(self.num_frames)
 
@@ -76,7 +76,7 @@ class Predictor(BasePredictor):
         load_model_wo_clip(self.model, state_dict)
 
         if self.args.guidance_param != 1:
-           self.model = ClassifierFreeSampleModel(self.model)   # wrapping model with the classifier-free sampler
+            self.model = ClassifierFreeSampleModel(self.model)  # wrapping model with the classifier-free sampler
         self.model.to(dist_util.dev())
         self.model.eval()  # disable random masking
 
@@ -98,10 +98,10 @@ class Predictor(BasePredictor):
         args.num_repetitions = int(num_repetitions)
 
         self.data = get_dataset_loader(name=self.args.dataset,
-                                  batch_size=args.num_repetitions,
-                                  num_frames=self.num_frames,
-                                  split='test',
-                                  hml_mode='text_only')
+                                       batch_size=args.num_repetitions,
+                                       num_frames=self.num_frames,
+                                       split='test',
+                                       hml_mode='text_only')
 
         collate_args = [{'inp': torch.zeros(self.num_frames), 'tokens': None, 'lengths': self.num_frames, 'text': str(prompt)}]
         _, model_kwargs = collate(collate_args)
@@ -135,8 +135,8 @@ class Predictor(BasePredictor):
         rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' else model_kwargs['y']['mask'].reshape(args.num_repetitions,
                                                                                                 self.num_frames).bool()
         sample = self.model.rot2xyz(x=sample, mask=rot2xyz_mask, pose_rep=rot2xyz_pose_rep, glob=True, translation=True,
-                               jointstype='smpl', vertstrans=True, betas=None, beta=0, glob_rot=None,
-                               get_rotations_back=False)
+                                    jointstype='smpl', vertstrans=True, betas=None, beta=0, glob_rot=None,
+                                    get_rotations_back=False)
 
         all_motions = sample.cpu().numpy()
 

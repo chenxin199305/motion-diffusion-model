@@ -192,7 +192,8 @@ class MDM(nn.Module):
         Returns:
             clip_model: The loaded and frozen CLIP model.
         """
-        clip_model, clip_preprocess = clip.load(clip_version, device='cpu',
+        clip_model, clip_preprocess = clip.load(clip_version,
+                                                device='cpu',
                                                 jit=False)  # Must set jit=False for training
         clip.model.convert_weights(
             clip_model)  # Actually this line is unnecessary since clip by default already on float16

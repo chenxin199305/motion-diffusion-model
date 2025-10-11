@@ -28,7 +28,7 @@ def main():
     niter = os.path.basename(args.model_path).replace('model', '').replace('.pt', '')
     max_frames = 196 if args.dataset in ['kit', 'humanml'] else 60
     fps = 12.5 if args.dataset == 'kit' else 20
-    n_frames = 120 # min(max_frames, int(args.motion_length*fps))
+    n_frames = 120  # min(max_frames, int(args.motion_length*fps))
 
     dist_util.setup_dist(args.device)
     if out_path == '':
@@ -59,7 +59,7 @@ def main():
     print(f"Loading checkpoints from [{args.model_path}]...")
     load_saved_model(model, args.model_path, use_avg=args.use_ema)
 
-    model = ClassifierFreeSampleModel(model)   # wrapping model with the classifier-free sampler
+    model = ClassifierFreeSampleModel(model)  # wrapping model with the classifier-free sampler
     model.to(dist_util.dev())
     model.eval()  # disable random masking
 
@@ -114,7 +114,6 @@ def main():
             const_noise=False,
         )
 
-
         # Recover XYZ *positions* from HumanML3D vector representation
         if model.data_rep == 'hml_vec':
             n_joints = 22 if sample.shape[1] == 263 else 21
@@ -127,7 +126,6 @@ def main():
         all_lengths.append(model_kwargs['y']['lengths'].cpu().numpy())
 
         print(f"created {len(all_motions) * args.batch_size} samples")
-
 
     all_motions = np.concatenate(all_motions, axis=0)
     all_motions = all_motions[:total_num_samples]  # [bs, njoints, 6, seqlen]
@@ -157,14 +155,13 @@ def main():
         input_motions = recover_from_ric(input_motions, n_joints)
         input_motions = input_motions.view(-1, *input_motions.shape[2:]).permute(0, 2, 3, 1).cpu().numpy()
 
-
     sample_print_template, row_print_template, all_print_template, \
-    sample_file_template, row_file_template, all_file_template = construct_template_variables(args.unconstrained)
+        sample_file_template, row_file_template, all_file_template = construct_template_variables(args.unconstrained)
     max_vis_samples = 6
     num_vis_samples = min(args.num_samples, max_vis_samples)
     animations = np.empty(shape=(args.num_samples, args.num_repetitions), dtype=object)
     max_length = max(all_lengths)
-    
+
     for sample_i in range(args.num_samples):
         caption = 'Input Motion'
         length = model_kwargs['y']['lengths'][sample_i]
@@ -178,30 +175,30 @@ def main():
         #                dataset=args.dataset, fps=fps, vis_mode='gt',
         #                gt_frames=gt_frames_per_sample.get(sample_i, []))
         for rep_i in range(args.num_repetitions):
-            caption = all_text[rep_i*args.batch_size + sample_i]
+            caption = all_text[rep_i * args.batch_size + sample_i]
             if caption == '':
                 caption = 'Edit [{}] unconditioned'.format(args.edit_mode)
             else:
                 caption = 'Edit [{}]: {}'.format(args.edit_mode, caption)
-            length = all_lengths[rep_i*args.batch_size + sample_i]
-            motion = all_motions[rep_i*args.batch_size + sample_i].transpose(2, 0, 1)[:length]
+            length = all_lengths[rep_i * args.batch_size + sample_i]
+            motion = all_motions[rep_i * args.batch_size + sample_i].transpose(2, 0, 1)[:length]
             save_file = 'sample{:02d}_rep{:02d}.mp4'.format(sample_i, rep_i)
             animation_save_path = os.path.join(out_path, save_file)
             rep_files.append(animation_save_path)
             gt_frames = gt_frames_per_sample.get(sample_i, [])
             print(f'[({sample_i}) "{caption}" | Rep #{rep_i} | -> {save_file}]')
-            animations[sample_i, rep_i] = plot_3d_motion(animation_save_path, 
-                                                         skeleton, motion, dataset=args.dataset, title=caption, 
+            animations[sample_i, rep_i] = plot_3d_motion(animation_save_path,
+                                                         skeleton, motion, dataset=args.dataset, title=caption,
                                                          fps=fps, gt_frames=gt_frames)
             # Credit for visualization: https://github.com/EricGuo5513/text-to-motion
 
         all_rep_save_file = os.path.join(out_path, 'sample{:02d}.mp4'.format(sample_i))
         ffmpeg_rep_files = [f' -i {f} ' for f in rep_files]
-        hstack_args = f' -filter_complex hstack=inputs={args.num_repetitions+1}'
+        hstack_args = f' -filter_complex hstack=inputs={args.num_repetitions + 1}'
         ffmpeg_rep_cmd = f'ffmpeg -y -loglevel warning ' + ''.join(ffmpeg_rep_files) + f'{hstack_args} {all_rep_save_file}'
         os.system(ffmpeg_rep_cmd)
         print(f'[({sample_i}) "{caption}" | all repetitions | -> {all_rep_save_file}]')
-    
+
     save_multiple_samples(out_path, {'all': all_file_template}, animations, fps, max(list(all_lengths) + [n_frames]))
 
     abs_path = os.path.abspath(out_path)
