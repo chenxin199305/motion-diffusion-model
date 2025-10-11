@@ -145,3 +145,5 @@ dataset/HumanML3D/
 dataset/KIT-ML/
 dataset/t2m_train.npy
 dataset/t2m_test.npy
+dataset/kit_train.npy
+dataset/kit_test.npy
