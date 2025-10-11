@@ -171,8 +171,7 @@ class MDM(nn.Module):
                 print('EMBED ACTION')
 
         # Output processing
-        self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
-                                            self.nfeats)
+        self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints, self.nfeats)
 
         # Rotation to XYZ conversion
         self.rot2xyz = Rotation2xyz(device='cpu', dataset=self.dataset)

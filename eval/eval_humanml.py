@@ -250,7 +250,6 @@ if __name__ == '__main__':
     3. Load the dataset and model checkpoints.
     4. Perform evaluation based on the specified mode and metrics.
     """
-
     # Parse evaluation arguments and fix random seed for reproducibility
     args = evaluation_parser()
     fixseed(args.seed)
