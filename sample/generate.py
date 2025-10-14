@@ -93,7 +93,9 @@ def main(args=None):
     model, diffusion = create_model_and_diffusion(args, data)
 
     sample_fn = diffusion.p_sample_loop
+
     if args.autoregressive:
+        print('Autoregressive sampling...')
         sample_cls = AutoRegressiveSampler(args, sample_fn, n_frames)
         sample_fn = sample_cls.sample
 
@@ -151,6 +153,8 @@ def main(args=None):
         else:
             raise NotImplementedError('DiP model only supports BERT text encoder at the moment. If you implement this, please send a PR!')
 
+    # --------------------------------------------------
+
     for rep_i in range(args.num_repetitions):
         print(f'### Sampling [repetitions #{rep_i}]')
 
@@ -174,25 +178,43 @@ def main(args=None):
             sample = recover_from_ric(sample, n_joints)
             sample = sample.view(-1, *sample.shape[2:]).permute(0, 2, 3, 1)
 
-        rot2xyz_pose_rep = 'xyz' if model.data_rep in ['xyz', 'hml_vec'] else model.data_rep
-        rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' else model_kwargs['y']['mask'].reshape(args.batch_size, n_frames).bool()
-        sample = model.rot2xyz(x=sample, mask=rot2xyz_mask, pose_rep=rot2xyz_pose_rep, glob=True, translation=True,
-                               jointstype='smpl', vertstrans=True, betas=None, beta=0, glob_rot=None,
+        rot2xyz_pose_rep = 'xyz' \
+            if model.data_rep in ['xyz', 'hml_vec'] \
+            else model.data_rep
+        rot2xyz_mask = None \
+            if rot2xyz_pose_rep == 'xyz' \
+            else model_kwargs['y']['mask'].reshape(args.batch_size, n_frames).bool()
+
+        sample = model.rot2xyz(x=sample,
+                               mask=rot2xyz_mask,
+                               pose_rep=rot2xyz_pose_rep,
+                               glob=True,
+                               translation=True,
+                               jointstype='smpl',
+                               vertstrans=True,
+                               betas=None,
+                               beta=0,
+                               glob_rot=None,
                                get_rotations_back=False)
 
         if args.unconstrained:
             all_text += ['unconstrained'] * args.num_samples
         else:
-            text_key = 'text' if 'text' in model_kwargs['y'] else 'action_text'
+            text_key = 'text' \
+                if 'text' in model_kwargs['y'] \
+                else 'action_text'
             all_text += model_kwargs['y'][text_key]
 
         all_motions.append(sample.cpu().numpy())
+
         _len = model_kwargs['y']['lengths'].cpu().numpy()
         if 'prefix' in model_kwargs['y'].keys():
             _len[:] = sample.shape[-1]
         all_lengths.append(_len)
 
         print(f"created {len(all_motions) * args.batch_size} samples")
+
+    # --------------------------------------------------
 
     all_motions = np.concatenate(all_motions, axis=0)
     all_motions = all_motions[:total_num_samples]  # [bs, njoints, 6, seqlen]
