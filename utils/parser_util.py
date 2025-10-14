@@ -10,6 +10,7 @@ def parse_and_load_from_model(parser):
     add_data_options(parser)
     add_model_options(parser)
     add_diffusion_options(parser)
+
     args = parser.parse_args()
     args_to_overwrite = []
     for group_name in ['dataset', 'model', 'diffusion']:
@@ -76,13 +77,18 @@ def get_model_path_from_args():
 
 def add_base_options(parser):
     group = parser.add_argument_group('base')
-    group.add_argument("--cuda", default=True, type=bool, help="Use cuda device, otherwise use CPU.")
-    group.add_argument("--device", default=0, type=int, help="Device id to use.")
-    group.add_argument("--seed", default=10, type=int, help="For fixing random seed.")
-    group.add_argument("--batch_size", default=64, type=int, help="Batch size during training.")
+    group.add_argument("--cuda", default=True, type=bool,
+                       help="Use cuda device, otherwise use CPU.")
+    group.add_argument("--device", default=0, type=int,
+                       help="Device id to use.")
+    group.add_argument("--seed", default=10, type=int,
+                       help="For fixing random seed.")
+    group.add_argument("--batch_size", default=64, type=int,
+                       help="Batch size during training.")
     group.add_argument("--train_platform_type", default='NoPlatform', choices=['NoPlatform', 'ClearmlPlatform', 'TensorboardPlatform', 'WandBPlatform'], type=str,
                        help="Choose platform to log results. NoPlatform means no logging.")
-    group.add_argument("--external_mode", default=False, type=bool, help="For backward cometability, do not change or delete.")
+    group.add_argument("--external_mode", default=False, type=bool,
+                       help="For backward cometability, do not change or delete.")
 
 
 def add_diffusion_options(parser):
@@ -96,37 +102,41 @@ def add_diffusion_options(parser):
 
 def add_model_options(parser):
     group = parser.add_argument_group('model')
-    group.add_argument("--arch", default='trans_enc',
-                       choices=['trans_enc', 'trans_dec', 'gru'], type=str,
+    group.add_argument("--arch", default='trans_enc', choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--text_encoder_type", default='clip',
-                       choices=['clip', 'bert'], type=str, help="Text encoder type.")
+    group.add_argument("--text_encoder_type", default='clip', choices=['clip', 'bert'], type=str,
+                       help="Text encoder type.")
     group.add_argument("--emb_trans_dec", action='store_true',
-                       help="For trans_dec architecture only, if true, will inject condition as a class token"
-                            " (in addition to cross-attention).")
+                       help="For trans_dec architecture only, if true, will inject condition as a class token (in addition to cross-attention).")
     group.add_argument("--layers", default=8, type=int,
                        help="Number of layers.")
     group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
     group.add_argument("--cond_mask_prob", default=.1, type=float,
-                       help="The probability of masking the condition during training."
-                            " For classifier-free guidance learning.")
-    group.add_argument("--mask_frames", action='store_true', help="If true, will fix Rotem's bug and mask invalid frames.")
-    group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
-    group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
-    group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
-    group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
+                       help="The probability of masking the condition during training. For classifier-free guidance learning.")
+    group.add_argument("--mask_frames", action='store_true',
+                       help="If true, will fix Rotem's bug and mask invalid frames.")
+    group.add_argument("--lambda_rcxyz", default=0.0, type=float,
+                       help="Joint positions loss.")
+    group.add_argument("--lambda_vel", default=0.0, type=float,
+                       help="Joint velocity loss.")
+    group.add_argument("--lambda_fc", default=0.0, type=float,
+                       help="Foot contact loss.")
+    group.add_argument("--lambda_target_loc", default=0.0, type=float,
+                       help="For HumanML only, when . L2 with target location.")
     group.add_argument("--unconstrained", action='store_true',
-                       help="Model is trained unconditionally. That is, it is constrained by neither text nor action. "
-                            "Currently tested on HumanAct12 only.")
+                       help="Model is trained unconditionally. That is, it is constrained by neither text nor action. Currently tested on HumanAct12 only.")
     group.add_argument("--pos_embed_max_len", default=5000, type=int,
                        help="Pose embedding max length.")
     group.add_argument("--use_ema", action='store_true',
                        help="If True, will use EMA model averaging.")
 
-    group.add_argument("--multi_target_cond", action='store_true', help="If true, enable multi-target conditioning (aka Sigal's model).")
-    group.add_argument("--multi_encoder_type", default='single', choices=['single', 'multi', 'split'], type=str, help="Specifies the encoder type to be used for the multi joint condition.")
-    group.add_argument("--target_enc_layers", default=1, type=int, help="Num target encoder layers")
+    group.add_argument("--multi_target_cond", action='store_true',
+                       help="If true, enable multi-target conditioning (aka Sigal's model).")
+    group.add_argument("--multi_encoder_type", default='single', choices=['single', 'multi', 'split'], type=str,
+                       help="Specifies the encoder type to be used for the multi joint condition.")
+    group.add_argument("--target_enc_layers", default=1, type=int,
+                       help="Num target encoder layers")
 
     # Prefix completion model
     group.add_argument("--context_len", default=0, type=int, help="If larger than 0, will do prefix completion.")
@@ -147,9 +157,12 @@ def add_training_options(parser):
                        help="Path to save checkpoints and results.")
     group.add_argument("--overwrite", action='store_true',
                        help="If True, will enable to use an already existing save_dir.")
-    group.add_argument("--lr", default=1e-4, type=float, help="Learning rate.")
-    group.add_argument("--weight_decay", default=0.0, type=float, help="Optimizer weight decay.")
-    group.add_argument("--lr_anneal_steps", default=0, type=int, help="Number of learning rate anneal steps.")
+    group.add_argument("--lr", default=1e-4, type=float,
+                       help="Learning rate.")
+    group.add_argument("--weight_decay", default=0.0, type=float,
+                       help="Optimizer weight decay.")
+    group.add_argument("--lr_anneal_steps", default=0, type=int,
+                       help="Number of learning rate anneal steps.")
     group.add_argument("--eval_batch_size", default=32, type=int,
                        help="Batch size during evaluation loop. Do not change this unless you know what you are doing. "
                             "T2m precision calculation is based on fixed batch size 32.")
@@ -181,12 +194,17 @@ def add_training_options(parser):
     group.add_argument("--gen_guidance_param", default=2.5, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
 
-    group.add_argument("--avg_model_beta", default=0.9999, type=float, help="Average model beta (for EMA).")
-    group.add_argument("--adam_beta2", default=0.999, type=float, help="Adam beta2.")
+    group.add_argument("--avg_model_beta", default=0.9999, type=float,
+                       help="Average model beta (for EMA).")
+    group.add_argument("--adam_beta2", default=0.999, type=float,
+                       help="Adam beta2.")
 
-    group.add_argument("--target_joint_names", default='DIMP_FINAL', type=str, help="Force single joint configuration by specifing the joints (coma separated). If None - will use the random mode for all end effectors.")
-    group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
-    group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
+    group.add_argument("--target_joint_names", default='DIMP_FINAL', type=str,
+                       help="Force single joint configuration by specifing the joints (coma separated). If None - will use the random mode for all end effectors.")
+    group.add_argument("--autoregressive", action='store_true',
+                       help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
+    group.add_argument("--autoregressive_include_prefix", action='store_true',
+                       help="If true, include the init prefix in the output, otherwise, will drop it.")
     group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
 
@@ -196,18 +214,18 @@ def add_sampling_options(parser):
     group.add_argument("--model_path", required=True, type=str,
                        help="Path to model####.pt file to be sampled.")
     group.add_argument("--output_dir", default='', type=str,
-                       help="Path to results dir (auto created by the script). "
-                            "If empty, will create dir in parallel to checkpoint.")
+                       help="Path to results dir (auto created by the script). If empty, will create dir in parallel to checkpoint.")
     group.add_argument("--num_samples", default=6, type=int,
-                       help="Maximal number of prompts to sample, "
-                            "if loading dataset from file, this field will be ignored.")
+                       help="Maximal number of prompts to sample, if loading dataset from file, this field will be ignored.")
     group.add_argument("--num_repetitions", default=3, type=int,
                        help="Number of repetitions, per sample (text prompt/action)")
     group.add_argument("--guidance_param", default=2.5, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
 
-    group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
-    group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
+    group.add_argument("--autoregressive", action='store_true',
+                       help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
+    group.add_argument("--autoregressive_include_prefix", action='store_true',
+                       help="If true, include the init prefix in the output, otherwise, will drop it.")
     group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
 
@@ -229,7 +247,8 @@ def add_generate_options(parser):
                        help="A text prompt to be generated. If empty, will take text prompts from dataset.")
     group.add_argument("--action_name", default='', type=str,
                        help="An action name to be generated. If empty, will take text prompts from dataset.")
-    group.add_argument("--target_joint_names", default='DIMP_FINAL', type=str, help="Force single joint configuration by specifing the joints (coma separated). If None - will use the random mode for all end effectors.")
+    group.add_argument("--target_joint_names", default='DIMP_FINAL', type=str,
+                       help="Force single joint configuration by specifing the joints (coma separated). If None - will use the random mode for all end effectors.")
 
 
 def add_edit_options(parser):
@@ -258,8 +277,10 @@ def add_evaluation_options(parser):
                             "mm_short (t2m only) - 5 repetitions with multi-modality metric; "
                             "debug - short run, less accurate results."
                             "full (a2m only) - 20 repetitions.")
-    group.add_argument("--autoregressive", action='store_true', help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
-    group.add_argument("--autoregressive_include_prefix", action='store_true', help="If true, include the init prefix in the output, otherwise, will drop it.")
+    group.add_argument("--autoregressive", action='store_true',
+                       help="If true, and we use a prefix model will generate motions in an autoregressive loop.")
+    group.add_argument("--autoregressive_include_prefix", action='store_true',
+                       help="If true, include the init prefix in the output, otherwise, will drop it.")
     group.add_argument("--autoregressive_init", default='data', type=str, choices=['data', 'isaac'],
                        help="Sets the source of the init frames, either from the dataset or isaac init poses.")
     group.add_argument("--guidance_param", default=2.5, type=float,
@@ -278,11 +299,13 @@ def get_cond_mode(args):
 
 def train_args():
     parser = ArgumentParser()
+
     add_base_options(parser)
     add_data_options(parser)
     add_model_options(parser)
     add_diffusion_options(parser)
     add_training_options(parser)
+
     return apply_rules(parser.parse_args())
 
 
@@ -306,16 +329,20 @@ def generate_args():
 
 def edit_args():
     parser = ArgumentParser()
+
     # args specified by the user: (all other will be loaded from the model)
     add_base_options(parser)
     add_sampling_options(parser)
     add_edit_options(parser)
+
     return parse_and_load_from_model(parser)
 
 
 def evaluation_parser():
     parser = ArgumentParser()
+
     # args specified by the user: (all other will be loaded from the model)
     add_base_options(parser)
     add_evaluation_options(parser)
+
     return parse_and_load_from_model(parser)
