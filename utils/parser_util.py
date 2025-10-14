@@ -288,6 +288,7 @@ def train_args():
 
 def generate_args():
     parser = ArgumentParser()
+
     # args specified by the user: (all other will be loaded from the model)
     add_base_options(parser)
     add_sampling_options(parser)

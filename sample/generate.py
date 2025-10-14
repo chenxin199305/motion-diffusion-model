@@ -21,9 +21,10 @@ from moviepy.editor import clips_array
 
 
 def main(args=None):
+    # args is None unless this method is called from another function (e.g. during training)
     if args is None:
-        # args is None unless this method is called from another function (e.g. during training)
         args = generate_args()
+
     fixseed(args.seed)
     out_path = args.output_dir
     n_joints = 22 if args.dataset == 'humanml' else 21
@@ -33,18 +34,25 @@ def main(args=None):
     fps = 12.5 if args.dataset == 'kit' else 20
     n_frames = min(max_frames, int(args.motion_length * fps))
     is_using_data = not any([args.input_text, args.text_prompt, args.action_file, args.action_name])
+
+    # For prefix completion, we need to sample a prefix
     if args.context_len > 0:
-        is_using_data = True  # For prefix completion, we need to sample a prefix
+        is_using_data = True
+
     dist_util.setup_dist(args.device)
+
     if out_path == '':
         out_path = os.path.join(os.path.dirname(args.model_path),
                                 'samples_{}_{}_seed{}'.format(name, niter, args.seed))
+
         if args.text_prompt != '':
             out_path += '_' + args.text_prompt.replace(' ', '_').replace('.', '')
         elif args.input_text != '':
             out_path += '_' + os.path.basename(args.input_text).replace('.txt', '').replace(' ', '_').replace('.', '')
         elif args.dynamic_text_path != '':
             out_path += '_' + os.path.basename(args.dynamic_text_path).replace('.txt', '').replace(' ', '_').replace('.', '')
+        else:
+            pass
 
     # this block must be called BEFORE the dataset is loaded
     texts = None
@@ -72,6 +80,8 @@ def main(args=None):
             action_text = fr.readlines()
         action_text = [s.replace('\n', '') for s in action_text]
         args.num_samples = len(action_text)
+    else:
+        pass
 
     args.batch_size = args.num_samples  # Sampling a single batch from the testset, with exactly args.num_samples
 
@@ -196,8 +206,13 @@ def main(args=None):
     npy_path = os.path.join(out_path, 'results.npy')
     print(f"saving results file to [{npy_path}]")
     np.save(npy_path,
-            {'motion': all_motions, 'text': all_text, 'lengths': all_lengths,
-             'num_samples': args.num_samples, 'num_repetitions': args.num_repetitions})
+            {
+                'motion': all_motions,
+                'text': all_text,
+                'lengths': all_lengths,
+                'num_samples': args.num_samples,
+                'num_repetitions': args.num_repetitions,
+            })
     if args.dynamic_text_path != '':
         text_file_content = '\n'.join(['#'.join(s) for s in all_text])
     else:
