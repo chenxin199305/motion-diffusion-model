@@ -226,6 +226,7 @@ def main(args=None):
     os.makedirs(out_path)
 
     npy_path = os.path.join(out_path, 'results.npy')
+
     print(f"saving results file to [{npy_path}]")
     np.save(npy_path,
             {
@@ -235,24 +236,34 @@ def main(args=None):
                 'num_samples': args.num_samples,
                 'num_repetitions': args.num_repetitions,
             })
+
     if args.dynamic_text_path != '':
         text_file_content = '\n'.join(['#'.join(s) for s in all_text])
     else:
         text_file_content = '\n'.join(all_text)
+
     with open(npy_path.replace('.npy', '.txt'), 'w') as fw:
         fw.write(text_file_content)
+
     with open(npy_path.replace('.npy', '_len.txt'), 'w') as fw:
         fw.write('\n'.join([str(l) for l in all_lengths]))
 
     print(f"saving visualizations to [{out_path}]...")
     skeleton = paramUtil.kit_kinematic_chain if args.dataset == 'kit' else paramUtil.t2m_kinematic_chain
 
-    sample_print_template, row_print_template, all_print_template, \
-        sample_file_template, row_file_template, all_file_template = construct_template_variables(args.unconstrained)
+    sample_print_template, \
+        row_print_template, \
+        all_print_template, \
+        sample_file_template, \
+        row_file_template, \
+        all_file_template = construct_template_variables(args.unconstrained)
+
     max_vis_samples = 6
     num_vis_samples = min(args.num_samples, max_vis_samples)
     animations = np.empty(shape=(args.num_samples, args.num_repetitions), dtype=object)
     max_length = max(all_lengths)
+
+    # --------------------------------------------------
 
     for sample_i in range(args.num_samples):
         rep_files = []
@@ -279,7 +290,13 @@ def main(args=None):
                                                          fps=fps, gt_frames=gt_frames)
             rep_files.append(animation_save_path)
 
-    save_multiple_samples(out_path, {'all': all_file_template}, animations, fps, max(list(all_lengths) + [n_frames]))
+    # --------------------------------------------------
+
+    save_multiple_samples(out_path,
+                          {'all': all_file_template},
+                          animations,
+                          fps,
+                          max(list(all_lengths) + [n_frames]))
 
     abs_path = os.path.abspath(out_path)
     print(f'[Done] Results are at [{abs_path}]')
