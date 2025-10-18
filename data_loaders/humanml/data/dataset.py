@@ -921,11 +921,42 @@ class TextOnlyDataset(data.Dataset):
 
 # A wrapper class for t2m original dataset for MDM purposes
 class HumanML3D(data.Dataset):
+    """
+    A PyTorch Dataset class for loading and processing the HumanML3D dataset.
+
+    This dataset is designed to handle motion data and associated text descriptions,
+    with support for caching, filtering, and preprocessing.
+
+    Attributes:
+        mode (str): The mode of the dataset ('train', 'eval', 'gt', or 'text_only').
+        dataset_name (str): The name of the dataset ('t2m').
+        data_name (str): Alias for the dataset name ('t2m').
+        opt (object): Configuration options for the dataset.
+        mean (np.ndarray): Mean values for normalization.
+        std (np.ndarray): Standard deviation values for normalization.
+        mean_for_eval (np.ndarray): Mean values for evaluation normalization (only in 'eval' mode).
+        std_for_eval (np.ndarray): Standard deviation values for evaluation normalization (only in 'eval' mode).
+        split_file (str): Path to the split file containing the list of data IDs.
+        t2m_dataset (data.Dataset): The underlying dataset object (TextOnlyDataset or Text2MotionDatasetV2).
+        num_actions (int): Placeholder for the number of actions (default is 1).
+        mean_gpu (torch.Tensor): Mean values for normalization on GPU.
+        std_gpu (torch.Tensor): Standard deviation values for normalization on GPU.
+    """
+
     def __init__(self, mode, datapath='./dataset/humanml_opt.txt', split="train", **kwargs):
+        """
+        Initializes the HumanML3D dataset.
+
+        Args:
+            mode (str): The mode of the dataset ('train', 'eval', 'gt', or 'text_only').
+            datapath (str, optional): Path to the dataset configuration file. Defaults to './dataset/humanml_opt.txt'.
+            split (str, optional): The data split to use ('train', 'test', or 'val'). Defaults to 'train'.
+            **kwargs: Additional keyword arguments for dataset configuration.
+        """
         self.mode = mode
 
         self.dataset_name = 't2m'
-        self.dataname = 't2m'
+        self.data_name = 't2m'
 
         # Configurations of T2M dataset and KIT dataset is almost the same
         abs_base_path = kwargs.get('abs_path', '.')
@@ -943,10 +974,13 @@ class HumanML3D(data.Dataset):
         opt.meta_dir = pjoin(abs_base_path, './dataset')
         opt.use_cache = kwargs.get('use_cache', True)
         opt.fixed_len = kwargs.get('fixed_len', 0)
+
         if opt.fixed_len > 0:
             opt.max_motion_length = opt.fixed_len
+
         is_autoregressive = kwargs.get('autoregressive', False)
         opt.disable_offset_aug = is_autoregressive and (opt.fixed_len > 0) and (mode == 'eval')  # for autoregressive evaluation, use the start of the motion and not something from the middle
+
         self.opt = opt
 
         print(
@@ -1000,9 +1034,24 @@ class HumanML3D(data.Dataset):
                                           'in the README file.'
 
     def __getitem__(self, item):
+        """
+        Retrieves a single item from the dataset.
+
+        Args:
+            item (int): Index of the item to retrieve.
+
+        Returns:
+            tuple: The data item retrieved from the underlying dataset.
+        """
         return self.t2m_dataset.__getitem__(item)
 
     def __len__(self):
+        """
+        Returns the number of items in the dataset.
+
+        Returns:
+            int: The number of items in the dataset.
+        """
         return self.t2m_dataset.__len__()
 
 

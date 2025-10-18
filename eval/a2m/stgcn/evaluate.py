@@ -8,7 +8,7 @@ from eval.a2m.recognition.models.stgcn import STGCN
 
 
 class Evaluation:
-    def __init__(self, dataname, parameters, device, seed=None):
+    def __init__(self, data_name, parameters, device, seed=None):
         layout = "smpl"  # if parameters["glob"] else "smpl_noglobal"
         model = STGCN(in_channels=parameters["nfeats"],
                       num_class=parameters["num_classes"],
@@ -27,7 +27,7 @@ class Evaluation:
         self.num_classes = parameters["num_classes"]
         self.model = model
 
-        self.dataname = dataname
+        self.data_name = data_name
         self.device = device
 
         self.seed = seed

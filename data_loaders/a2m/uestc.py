@@ -50,7 +50,7 @@ def get_trans_from_vibe(vibe, index, use_z=True):
 
 
 class UESTC(Dataset):
-    dataname = "uestc"
+    data_name = "uestc"
 
     def __init__(self, datapath="dataset/uestc", method_name="vibe", view="all", **kargs):
 
