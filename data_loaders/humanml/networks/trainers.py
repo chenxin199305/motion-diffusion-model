@@ -14,13 +14,14 @@ import codecs as cs
 
 
 class Logger(object):
-  def __init__(self, log_dir):
-    self.writer = tf.summary.create_file_writer(log_dir)
+    def __init__(self, log_dir):
+        self.writer = tf.summary.create_file_writer(log_dir)
 
-  def scalar_summary(self, tag, value, step):
-      with self.writer.as_default():
-          tf.summary.scalar(tag, value, step=step)
-          self.writer.flush()
+    def scalar_summary(self, tag, value, step):
+        with self.writer.as_default():
+            tf.summary.scalar(tag, value, step=step)
+            self.writer.flush()
+
 
 class DecompTrainerV3(object):
     def __init__(self, args, movement_enc, movement_dec):
@@ -34,7 +35,6 @@ class DecompTrainerV3(object):
             self.sml1_criterion = torch.nn.SmoothL1Loss()
             self.l1_criterion = torch.nn.L1Loss()
             self.mse_criterion = torch.nn.MSELoss()
-
 
     @staticmethod
     def zero_grad(opt_list):
@@ -59,12 +59,12 @@ class DecompTrainerV3(object):
 
     def backward(self):
         self.loss_rec = self.l1_criterion(self.recon_motions, self.motions)
-                        # self.sml1_criterion(self.recon_motions[:, 1:] - self.recon_motions[:, :-1],
-                        #                     self.motions[:, 1:] - self.recon_motions[:, :-1])
+        # self.sml1_criterion(self.recon_motions[:, 1:] - self.recon_motions[:, :-1],
+        #                     self.motions[:, 1:] - self.recon_motions[:, :-1])
         self.loss_sparsity = torch.mean(torch.abs(self.latents))
         self.loss_smooth = self.l1_criterion(self.latents[:, 1:], self.latents[:, :-1])
-        self.loss = self.loss_rec + self.loss_sparsity * self.opt.lambda_sparsity +\
-                    self.loss_smooth*self.opt.lambda_smooth
+        self.loss = self.loss_rec + self.loss_sparsity * self.opt.lambda_sparsity + \
+                    self.loss_smooth * self.opt.lambda_smooth
 
     def update(self):
         # time0 = time.time()
@@ -271,7 +271,7 @@ class CompTrainerV6(object):
     def kl_criterion_unit(mu, logvar):
         # KL( N(mu1, sigma2_1) || N(mu_2, sigma2_2))
         # loss = log(sigma2/sigma1) + (sigma1^2 + (mu1 - mu2)^2)/(2*sigma2^2) - 1/2
-        kld = ((torch.exp(logvar) + mu ** 2)  - logvar  - 1) / 2
+        kld = ((torch.exp(logvar) + mu ** 2) - logvar - 1) / 2
         return kld.sum() / mu.shape[0]
 
     def forward(self, batch_data, tf_ratio, mov_len, eval_mode=False):
@@ -367,7 +367,6 @@ class CompTrainerV6(object):
             else:
                 mov_in = fake_mov.detach()
 
-
         self.fake_movements = torch.cat(fake_mov_batch, dim=1)
 
         # print(self.fake_movements.shape)
@@ -426,7 +425,7 @@ class CompTrainerV6(object):
 
             '''Decoder'''
             dec_in = torch.cat([mov_in, att_vec, z_pri], dim=-1)
-            
+
             fake_mov, hidden_dec = self.seq_dec(dec_in, mov_in, hidden_dec, tta)
 
             # print(fake_mov.shape)
@@ -470,7 +469,6 @@ class CompTrainerV6(object):
         #                 self.loss_kld * self.opt.lambda_kld + \
         #                 self.loss_mtgan_G * self.opt.lambda_gan_mt + self.loss_mvgan_G * self.opt.lambda_gan_mv
 
-
     def update(self):
 
         self.zero_grad([self.opt_text_enc, self.opt_seq_dec, self.opt_seq_post,
@@ -491,7 +489,7 @@ class CompTrainerV6(object):
         # time2_3 = time.time()
         # print("\t\t Clip Norm :%5f" % (time2_3 - time2_2))
         self.step([self.opt_text_enc, self.opt_seq_dec, self.opt_seq_post,
-                        self.opt_seq_pri, self.opt_att_layer, self.opt_mov_dec])
+                   self.opt_seq_pri, self.opt_att_layer, self.opt_mov_dec])
 
         # time2_4 = time.time()
         # print("\t\t Step :%5f" % (time2_4 - time2_3))
@@ -528,27 +526,25 @@ class CompTrainerV6(object):
         if self.opt.is_train:
             self.seq_post.train()
         self.mov_enc.eval()
-            # self.motion_dis.train()
-            # self.movement_dis.train()
+        # self.motion_dis.train()
+        # self.movement_dis.train()
         self.mov_dec.train()
         self.text_enc.train()
         self.seq_pri.train()
         self.att_layer.train()
         self.seq_dec.train()
 
-
     def eval_mode(self):
         if self.opt.is_train:
             self.seq_post.eval()
         self.mov_enc.eval()
-            # self.motion_dis.train()
-            # self.movement_dis.train()
+        # self.motion_dis.train()
+        # self.movement_dis.train()
         self.mov_dec.eval()
         self.text_enc.eval()
         self.seq_pri.eval()
         self.att_layer.eval()
         self.seq_dec.eval()
-
 
     def save(self, file_name, ep, total_it, sub_ep, sl_len):
         state = {
@@ -610,7 +606,7 @@ class CompTrainerV6(object):
         self.opt_att_layer = optim.Adam(self.att_layer.parameters(), lr=self.opt.lr)
         self.opt_seq_dec = optim.Adam(self.seq_dec.parameters(), lr=self.opt.lr)
 
-        self.opt_mov_dec = optim.Adam(self.mov_dec.parameters(), lr=self.opt.lr*0.1)
+        self.opt_mov_dec = optim.Adam(self.mov_dec.parameters(), lr=self.opt.lr * 0.1)
 
         epoch = 0
         it = 0
@@ -635,7 +631,7 @@ class CompTrainerV6(object):
             train_loader = DataLoader(train_dataset, batch_size=self.opt.batch_size, drop_last=True, num_workers=4,
                                       shuffle=True, collate_fn=collate_fn, pin_memory=True)
             val_loader = DataLoader(val_dataset, batch_size=self.opt.batch_size, drop_last=True, num_workers=4,
-                                      shuffle=True, collate_fn=collate_fn, pin_memory=True)
+                                    shuffle=True, collate_fn=collate_fn, pin_memory=True)
             print("Max_Length:%03d Training Split:%05d Validation Split:%04d" % (schedule_len, len(train_loader), len(val_loader)))
 
             min_val_loss = np.inf
@@ -663,7 +659,6 @@ class CompTrainerV6(object):
                             logs[k] += v
                     time4 = time.time()
 
-
                     it += 1
                     if it % self.opt.log_every == 0:
                         mean_loss = OrderedDict({'val_loss': val_loss})
@@ -671,7 +666,7 @@ class CompTrainerV6(object):
                         self.logger.scalar_summary('scheduled_length', schedule_len, it)
 
                         for tag, value in logs.items():
-                            self.logger.scalar_summary(tag, value/self.opt.log_every, it)
+                            self.logger.scalar_summary(tag, value / self.opt.log_every, it)
                             mean_loss[tag] = value / self.opt.log_every
                         logs = OrderedDict()
                         print_current_loss(start_time, it, mean_loss, epoch, sub_epoch=sub_epoch, inner_iter=i,
@@ -691,7 +686,7 @@ class CompTrainerV6(object):
 
                 epoch += 1
                 if epoch % self.opt.save_every_e == 0:
-                    self.save(pjoin(self.opt.model_dir, 'E%03d_SE%02d_SL%02d.tar'%(epoch, sub_epoch, schedule_len)),
+                    self.save(pjoin(self.opt.model_dir, 'E%03d_SE%02d_SL%02d.tar' % (epoch, sub_epoch, schedule_len)),
                               epoch, total_it=it, sub_ep=sub_epoch, sl_len=schedule_len)
 
                 print('Validation time:')
@@ -724,7 +719,7 @@ class CompTrainerV6(object):
                     gt_data = self.motions[:4]
                     data = torch.cat([fake_data, reco_data, gt_data], dim=0).cpu().numpy()
                     captions = self.caption[:4] * 3
-                    save_dir = pjoin(self.opt.eval_dir, 'E%03d_SE%02d_SL%02d'%(epoch, sub_epoch, schedule_len))
+                    save_dir = pjoin(self.opt.eval_dir, 'E%03d_SE%02d_SL%02d' % (epoch, sub_epoch, schedule_len))
                     os.makedirs(save_dir, exist_ok=True)
                     plot_eval(data, save_dir, captions)
 
@@ -962,7 +957,6 @@ class TextMotionMatchTrainer(object):
         self.text_embedding = self.text_encoder(word_emb, pos_ohot, cap_lens)
         self.text_embedding = self.text_embedding.clone()[self.align_idx]
 
-
     def backward(self):
 
         batch_size = self.text_embedding.shape[0]
@@ -972,7 +966,7 @@ class TextMotionMatchTrainer(object):
 
         '''Negative Pairs, shifting index'''
         neg_labels = torch.ones(batch_size).to(self.text_embedding.device)
-        shift = np.random.randint(0, batch_size-1)
+        shift = np.random.randint(0, batch_size - 1)
         new_idx = np.arange(shift, batch_size + shift) % batch_size
         self.mis_motion_embedding = self.motion_embedding.clone()[new_idx]
         self.loss_neg = self.contrastive_loss(self.text_embedding, self.mis_motion_embedding, neg_labels)
@@ -984,7 +978,6 @@ class TextMotionMatchTrainer(object):
         loss_logs['loss_neg'] = self.loss_neg.item()
         return loss_logs
 
-
     def update(self):
 
         self.zero_grad([self.opt_motion_encoder, self.opt_text_encoder])
@@ -994,7 +987,6 @@ class TextMotionMatchTrainer(object):
         self.step([self.opt_text_encoder, self.opt_motion_encoder])
 
         return loss_logs
-
 
     def train(self, train_dataloader, val_dataloader):
         self.to(self.device)
@@ -1029,7 +1021,6 @@ class TextMotionMatchTrainer(object):
                         logs[k] = v
                     else:
                         logs[k] += v
-
 
                 it += 1
                 if it % self.opt.log_every == 0:

@@ -5,6 +5,7 @@ from os.path import join as pjoin
 from torch.utils.data import DataLoader
 from t2m.utils.get_opt import get_opt
 
+
 def get_dataset_motion_loader(opt_path, batch_size, device):
     opt = get_opt(opt_path, device)
 

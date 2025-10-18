@@ -13,13 +13,14 @@ class ContrastiveLoss(torch.nn.Module):
     Contrastive loss function.
     Based on: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
     """
+
     def __init__(self, margin=3.0):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
 
     def forward(self, output1, output2, label):
         euclidean_distance = F.pairwise_distance(output1, output2, keepdim=True)
-        loss_contrastive = torch.mean((1-label) * torch.pow(euclidean_distance, 2) +
+        loss_contrastive = torch.mean((1 - label) * torch.pow(euclidean_distance, 2) +
                                       (label) * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
         return loss_contrastive
 
@@ -43,7 +44,7 @@ def reparameterize(mu, logvar):
 def positional_encoding(batch_size, dim, pos):
     assert batch_size == pos.shape[0]
     positions_enc = np.array([
-        [pos[j] / np.power(10000, (i-i%2)/dim) for i in range(dim)]
+        [pos[j] / np.power(10000, (i - i % 2) / dim) for i in range(dim)]
         for j in range(batch_size)
     ], dtype=np.float32)
     positions_enc[:, 0::2] = np.sin(positions_enc[:, 0::2])
@@ -136,7 +137,6 @@ class TextVAEDecoder(nn.Module):
         self.gru = nn.ModuleList([nn.GRUCell(hidden_size, hidden_size) for i in range(self.n_layers)])
         self.positional_encoder = PositionalEncoding(hidden_size)
 
-
         self.output = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.LayerNorm(hidden_size),
@@ -209,7 +209,6 @@ class TextDecoder(nn.Module):
         self.logvar_net.apply(init_weight)
 
     def get_init_hidden(self, latent):
-
         hidden = self.z2init(latent)
         hidden = torch.split(hidden, self.hidden_size, dim=-1)
 
@@ -228,6 +227,7 @@ class TextDecoder(nn.Module):
         logvar = self.logvar_net(h_in)
         z = reparameterize(mu, logvar)
         return z, mu, logvar, hidden
+
 
 class AttLayer(nn.Module):
     def __init__(self, query_dim, key_dim, value_dim):
@@ -249,15 +249,15 @@ class AttLayer(nn.Module):
         key (batch, seq_len, key_dim)
         '''
         # print(query.shape)
-        query_vec = self.W_q(query).unsqueeze(-1)       # (batch, value_dim, 1)
-        val_set = self.W_v(key_mat)                     # (batch, seq_len, value_dim)
-        key_set = self.W_k(key_mat)                     # (batch, seq_len, value_dim)
+        query_vec = self.W_q(query).unsqueeze(-1)  # (batch, value_dim, 1)
+        val_set = self.W_v(key_mat)  # (batch, seq_len, value_dim)
+        key_set = self.W_k(key_mat)  # (batch, seq_len, value_dim)
 
         weights = torch.matmul(key_set, query_vec) / np.sqrt(self.dim)
 
-        co_weights = self.softmax(weights)              # (batch, seq_len, 1)
-        values = val_set * co_weights                   # (batch, seq_len, value_dim)
-        pred = values.sum(dim=1)                        # (batch, value_dim)
+        co_weights = self.softmax(weights)  # (batch, seq_len, 1)
+        values = val_set * co_weights  # (batch, seq_len, value_dim)
+        pred = values.sum(dim=1)  # (batch, value_dim)
         return pred, co_weights
 
     def short_cut(self, querys, keys):
@@ -302,7 +302,7 @@ class TextEncoderBiGRU(nn.Module):
 
         # Concate the forward and backward word embeddings
         for i, length in enumerate(cap_lens):
-            backward_seq[i:i+1, :length] = torch.flip(backward_seq[i:i+1, :length].clone(), dims=[1])
+            backward_seq[i:i + 1, :length] = torch.flip(backward_seq[i:i + 1, :length].clone(), dims=[1])
         gru_seq = torch.cat([forward_seq, backward_seq], dim=-1)
 
         return gru_seq, gru_last
@@ -358,7 +358,7 @@ class MotionEncoderBiGRUCo(nn.Module):
         self.input_emb = nn.Linear(input_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, bidirectional=True)
         self.output_net = nn.Sequential(
-            nn.Linear(hidden_size*2, hidden_size),
+            nn.Linear(hidden_size * 2, hidden_size),
             nn.LayerNorm(hidden_size),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(hidden_size, output_size)
@@ -395,7 +395,7 @@ class MotionLenEstimatorBiGRU(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, bidirectional=True)
         nd = 512
         self.output = nn.Sequential(
-            nn.Linear(hidden_size*2, nd),
+            nn.Linear(hidden_size * 2, nd),
             nn.LayerNorm(nd),
             nn.LeakyReLU(0.2, inplace=True),
 

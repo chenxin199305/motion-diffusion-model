@@ -46,7 +46,6 @@ class MMGeneratedDataset(Dataset):
         return motions, m_lens
 
 
-
 def get_motion_loader(opt_path, batch_size, ground_truth_dataset, mm_num_samples, mm_num_repeats, device):
     opt = get_opt(opt_path, device)
 
@@ -70,6 +69,7 @@ def get_motion_loader(opt_path, batch_size, ground_truth_dataset, mm_num_samples
     print('Generated Dataset Loading Completed!!!')
 
     return motion_loader, mm_motion_loader
+
 
 # our loader
 def get_mdm_loader(args, model, diffusion, batch_size, ground_truth_loader, mm_num_samples, mm_num_repeats, max_motion_length, num_samples_limit, scale):

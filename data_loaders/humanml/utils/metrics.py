@@ -13,11 +13,12 @@ def euclidean_distance_matrix(matrix1, matrix2):
         dist[i, j] == distance(matrix1[i], matrix2[j])
     """
     assert matrix1.shape[1] == matrix2.shape[1]
-    d1 = -2 * np.dot(matrix1, matrix2.T)    # shape (num_test, num_train)
-    d2 = np.sum(np.square(matrix1), axis=1, keepdims=True)    # shape (num_test, 1)
-    d3 = np.sum(np.square(matrix2), axis=1)     # shape (num_train, )
+    d1 = -2 * np.dot(matrix1, matrix2.T)  # shape (num_test, num_train)
+    d2 = np.sum(np.square(matrix1), axis=1, keepdims=True)  # shape (num_test, 1)
+    d3 = np.sum(np.square(matrix2), axis=1)  # shape (num_train, )
     dists = np.sqrt(d1 + d2 + d3)  # broadcasting
     return dists
+
 
 def calculate_top_k(mat, top_k):
     size = mat.shape[0]
@@ -26,7 +27,7 @@ def calculate_top_k(mat, top_k):
     correct_vec = False
     top_k_list = []
     for i in range(top_k):
-#         print(correct_vec, bool_mat[:, i])
+        #         print(correct_vec, bool_mat[:, i])
         correct_vec = (correct_vec | bool_mat[:, i])
         # print(correct_vec)
         top_k_list.append(correct_vec[:, None])
@@ -54,7 +55,6 @@ def calculate_matching_score(embedding1, embedding2, sum_all=False):
         return dist.sum(axis=0)
     else:
         return dist
-
 
 
 def calculate_activation_statistics(activations):

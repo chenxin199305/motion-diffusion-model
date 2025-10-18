@@ -7,6 +7,7 @@ from data_loaders.tensors import collate
 from utils.misc import to_torch
 import utils.rotation_conversions as geometry
 
+
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, num_frames=1, sampling="conseq", sampling_step=1, split="train",
                  pose_rep="rot6d", translation=True, glob=True, max_len=-1, min_len=-1, num_seq_max=-1, **kwargs):
@@ -196,14 +197,12 @@ class Dataset(torch.utils.data.Dataset):
 
         inp, action = self.get_pose_data(data_index, frame_ix)
 
-
         output = {'inp': inp, 'action': action}
 
         if hasattr(self, '_actions') and hasattr(self, '_action_classes'):
             output['action_text'] = self.action_to_action_name(self.get_action(data_index))
 
         return output
-
 
     def get_mean_length_label(self, label):
         if self.num_frames != -1:

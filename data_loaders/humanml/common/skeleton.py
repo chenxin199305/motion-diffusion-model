@@ -1,6 +1,7 @@
 from data_loaders.humanml.common.quaternion import *
 import scipy.ndimage.filters as filters
 
+
 class Skeleton(object):
     def __init__(self, offset, kinematic_tree, device):
         self.device = device
@@ -12,7 +13,7 @@ class Skeleton(object):
         self._parents[0] = -1
         for chain in self._kinematic_tree:
             for j in range(1, len(chain)):
-                self._parents[chain[j]] = chain[j-1]
+                self._parents[chain[j]] = chain[j - 1]
 
     def njoints(self):
         return len(self._raw_offset)
@@ -62,7 +63,7 @@ class Skeleton(object):
         across1 = joints[:, r_hip] - joints[:, l_hip]
         across2 = joints[:, sdr_r] - joints[:, sdr_l]
         across = across1 + across2
-        across = across / np.sqrt((across**2).sum(axis=-1))[:, np.newaxis]
+        across = across / np.sqrt((across ** 2).sum(axis=-1))[:, np.newaxis]
         # print(across1.shape, across2.shape)
 
         # forward (batch_size, 3)
@@ -70,10 +71,10 @@ class Skeleton(object):
         if smooth_forward:
             forward = filters.gaussian_filter1d(forward, 20, axis=0, mode='nearest')
             # forward (batch_size, 3)
-        forward = forward / np.sqrt((forward**2).sum(axis=-1))[..., np.newaxis]
+        forward = forward / np.sqrt((forward ** 2).sum(axis=-1))[..., np.newaxis]
 
         '''Get Root Rotation'''
-        target = np.array([[0,0,1]]).repeat(len(forward), axis=0)
+        target = np.array([[0, 0, 1]]).repeat(len(forward), axis=0)
         root_quat = qbetween_np(forward, target)  # angle from root to Z+ (= how much to rotate root such that it faces Z+)
 
         '''Inverse Kinematics'''
@@ -88,18 +89,18 @@ class Skeleton(object):
             R = root_quat
             for j in range(len(chain) - 1):
                 # (batch, 3)
-                u = self._raw_offset_np[chain[j+1]][np.newaxis,...].repeat(len(joints), axis=0)  # rest-pose bone direction for joint j in the chain
+                u = self._raw_offset_np[chain[j + 1]][np.newaxis, ...].repeat(len(joints), axis=0)  # rest-pose bone direction for joint j in the chain
                 # print(u.shape)
                 # (batch, 3)
-                v = joints[:, chain[j+1]] - joints[:, chain[j]]  # data bone direction for joint j+1 in the chain
-                v = v / np.sqrt((v**2).sum(axis=-1))[:, np.newaxis]
+                v = joints[:, chain[j + 1]] - joints[:, chain[j]]  # data bone direction for joint j+1 in the chain
+                v = v / np.sqrt((v ** 2).sum(axis=-1))[:, np.newaxis]
                 # print(u.shape, v.shape)
                 rot_u_v = qbetween_np(u, v)  # angle betweem rest-pose bone and data bone (bone is j to j+1)
 
                 R_loc = qmul_np(qinv_np(R), rot_u_v)  # bring angle to be local coordinate system, i.e., relative to the parent bone
 
-                quat_params[:,chain[j + 1], :] = R_loc
-                R = qmul_np(R, R_loc)  
+                quat_params[:, chain[j + 1], :] = R_loc
+                R = qmul_np(R, R_loc)
 
         return quat_params
 
@@ -122,7 +123,7 @@ class Skeleton(object):
             for i in range(1, len(chain)):
                 R = qmul(R, quat_params[:, chain[i]])
                 offset_vec = offsets[:, chain[i]]
-                joints[:, chain[i]] = qrot(R, offset_vec) + joints[:, chain[i-1]]
+                joints[:, chain[i]] = qrot(R, offset_vec) + joints[:, chain[i - 1]]
         return joints
 
     # Be sure root joint is at the beginning of kinematic chains
@@ -170,7 +171,7 @@ class Skeleton(object):
                 matR = np.matmul(matR, cont6d_to_matrix_np(cont6d_params[:, chain[i]]))
                 offset_vec = offsets[:, chain[i]][..., np.newaxis]
                 # print(matR.shape, offset_vec.shape)
-                joints[:, chain[i]] = np.matmul(matR, offset_vec).squeeze(-1) + joints[:, chain[i-1]]
+                joints[:, chain[i]] = np.matmul(matR, offset_vec).squeeze(-1) + joints[:, chain[i - 1]]
         return joints
 
     def forward_kinematics_cont6d(self, cont6d_params, root_pos, skel_joints=None, do_root_R=True):
@@ -193,10 +194,5 @@ class Skeleton(object):
                 matR = torch.matmul(matR, cont6d_to_matrix(cont6d_params[:, chain[i]]))
                 offset_vec = offsets[:, chain[i]].unsqueeze(-1)
                 # print(matR.shape, offset_vec.shape)
-                joints[:, chain[i]] = torch.matmul(matR, offset_vec).squeeze(-1) + joints[:, chain[i-1]]
+                joints[:, chain[i]] = torch.matmul(matR, offset_vec).squeeze(-1) + joints[:, chain[i - 1]]
         return joints
-
-
-
-
-

@@ -2,8 +2,9 @@ from data_loaders.humanml.networks.modules import *
 from data_loaders.humanml.utils.word_vectorizer import POS_enumerator
 from os.path import join as pjoin
 
+
 def build_models(opt):
-    movement_enc = MovementConvEncoder(opt.dim_pose-4, opt.dim_movement_enc_hidden, opt.dim_movement_latent)
+    movement_enc = MovementConvEncoder(opt.dim_pose - 4, opt.dim_movement_enc_hidden, opt.dim_movement_latent)
     text_enc = TextEncoderBiGRUCo(word_size=opt.dim_word,
                                   pos_size=opt.dim_pos_ohot,
                                   hidden_size=opt.dim_text_hidden,
@@ -91,9 +92,10 @@ class EvaluatorModelWrapper(object):
             motion_embedding = self.motion_encoder(movements, m_lens)
         return motion_embedding
 
+
 # our version
 def build_evaluators(opt):
-    movement_enc = MovementConvEncoder(opt['dim_pose']-4, opt['dim_movement_enc_hidden'], opt['dim_movement_latent'])
+    movement_enc = MovementConvEncoder(opt['dim_pose'] - 4, opt['dim_movement_enc_hidden'], opt['dim_movement_latent'])
     text_enc = TextEncoderBiGRUCo(word_size=opt['dim_word'],
                                   pos_size=opt['dim_pos_ohot'],
                                   hidden_size=opt['dim_text_hidden'],
@@ -116,6 +118,7 @@ def build_evaluators(opt):
     motion_enc.load_state_dict(checkpoint['motion_encoder'])
     print('Loading Evaluation Model Wrapper (Epoch %d) Completed!!' % (checkpoint['epoch']))
     return text_enc, motion_enc, movement_enc
+
 
 # our wrapper
 class EvaluatorMDMWrapper(object):

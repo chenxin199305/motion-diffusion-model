@@ -10,6 +10,8 @@ various logging platforms like WandB, ClearML, and Tensorboard.
 
 import os
 import json
+import pprint
+
 from utils.fixseed import fixseed  # Utility to fix random seeds for reproducibility
 from utils.parser_util import train_args  # Argument parser for training configurations
 from utils import dist_util  # Utilities for distributed training setup
@@ -23,12 +25,14 @@ from train.train_platforms import (
     NoPlatform,  # No logging platform
 )
 
+
 def main():
     """
     Main function to set up and run the training process.
     """
     # Parse training arguments
     args = train_args()
+    pprint.pprint(vars(args), indent=4)
 
     # Fix random seed for reproducibility
     fixseed(args.seed)
@@ -85,6 +89,7 @@ def main():
 
     # Close the training platform
     train_platform.close()
+
 
 # Entry point for the script
 if __name__ == "__main__":

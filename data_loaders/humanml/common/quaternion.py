@@ -12,6 +12,7 @@ _EPS4 = np.finfo(float).eps * 4.0
 
 _FLOAT_EPS = np.finfo(float).eps
 
+
 # PyTorch-backed implementations
 def qinv(q):
     assert q.shape[-1] == 4, 'q must be a tensor of shape (*, 4)'

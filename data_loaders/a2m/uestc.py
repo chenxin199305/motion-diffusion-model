@@ -6,6 +6,7 @@ import utils.rotation_conversions as geometry
 import torch
 
 from .dataset import Dataset
+
 # from torch.utils.data import Dataset
 
 action2motion_joints = [8, 1, 2, 3, 4, 5, 6, 7, 0, 9, 10, 11, 12, 13, 14, 21, 24, 38]
@@ -121,9 +122,9 @@ class UESTC(Dataset):
         self.info_actions = []
 
         def get_rotation(view):
-            theta = - view * np.pi/4
+            theta = - view * np.pi / 4
             axis = torch.tensor([0, 1, 0], dtype=torch.float)
-            axisangle = theta*axis
+            axisangle = theta * axis
             matrix = geometry.axis_angle_to_matrix(axisangle)
             return matrix
 
@@ -167,7 +168,7 @@ class UESTC(Dataset):
 
         # Select only sequences which have a minimum number of frames
         if self.num_frames > 0:
-            threshold = self.num_frames*3/4
+            threshold = self.num_frames * 3 / 4
         else:
             threshold = 0
 

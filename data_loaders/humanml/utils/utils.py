@@ -13,11 +13,13 @@ def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
 COLORS = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0], [0, 255, 0],
           [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255],
           [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85]]
 
 MISSING_VALUE = -1
+
 
 def save_image(image_numpy, image_path):
     img_pil = Image.fromarray(image_numpy)
@@ -35,7 +37,6 @@ def save_logfile(log_loss, save_path):
 
 def print_current_loss(start_time, niter_state, losses, epoch=None, sub_epoch=None,
                        inner_iter=None, tf_ratio=None, sl_steps=None):
-
     def as_minutes(s):
         m = math.floor(s / 60)
         s -= m * 60
@@ -54,15 +55,15 @@ def print_current_loss(start_time, niter_state, losses, epoch=None, sub_epoch=No
     # message = '%s niter: %d completed: %3d%%)' % (time_since(start_time, niter_state / total_niters),
     #                                             niter_state, niter_state / total_niters * 100)
     now = time.time()
-    message = '%s'%(as_minutes(now - start_time))
+    message = '%s' % (as_minutes(now - start_time))
 
     for k, v in losses.items():
         message += ' %s: %.4f ' % (k, v)
-    message += ' sl_length:%2d tf_ratio:%.2f'%(sl_steps, tf_ratio)
+    message += ' sl_length:%2d tf_ratio:%.2f' % (sl_steps, tf_ratio)
     print(message)
 
-def print_current_loss_decomp(start_time, niter_state, total_niters, losses, epoch=None, inner_iter=None):
 
+def print_current_loss_decomp(start_time, niter_state, total_niters, losses, epoch=None, inner_iter=None):
     def as_minutes(s):
         m = math.floor(s / 60)
         s -= m * 60
@@ -77,7 +78,7 @@ def print_current_loss_decomp(start_time, niter_state, total_niters, losses, epo
 
     print('epoch: %03d inner_iter: %5d' % (epoch, inner_iter), end=" ")
     # now = time.time()
-    message = '%s niter: %07d completed: %3d%%)'%(time_since(start_time, niter_state / total_niters), niter_state, niter_state / total_niters * 100)
+    message = '%s niter: %07d completed: %3d%%)' % (time_since(start_time, niter_state / total_niters), niter_state, niter_state / total_niters * 100)
     for k, v in losses.items():
         message += ' %s: %.4f ' % (k, v)
     print(message)
@@ -126,8 +127,8 @@ def compose_image(img_list, col, row, img_size):
             from_img = Image.fromarray(img_list[y * col + x])
             # print((x * img_size[0], y*img_size[1],
             #                           (x + 1) * img_size[0], (y + 1) * img_size[1]))
-            paste_area = (x * img_size[0], y*img_size[1],
-                                      (x + 1) * img_size[0], (y + 1) * img_size[1])
+            paste_area = (x * img_size[0], y * img_size[1],
+                          (x + 1) * img_size[0], (y + 1) * img_size[1])
             to_image.paste(from_img, paste_area)
             # to_image[y*img_size[1]:(y + 1) * img_size[1], x * img_size[0] :(x + 1) * img_size[0]] = from_img
     return to_image
@@ -164,4 +165,3 @@ def motion_temporal_filter(motion, sigma=1):
     for i in range(motion.shape[1]):
         motion[:, i] = gaussian_filter(motion[:, i], sigma=sigma, mode="nearest")
     return motion.reshape(motion.shape[0], -1, 3)
-
