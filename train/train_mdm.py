@@ -64,8 +64,10 @@ def main():
 
     # --------------------------------------------------
 
-    # Set up distributed training utilities
+    # Set up distributed training utilities 设置训练设备
     dist_util.setup_dist(args.device)
+
+    # --------------------------------------------------
 
     print("creating data loader...")
 
@@ -79,6 +81,8 @@ def main():
         device=dist_util.dev(),  # Device for data loading
     )
 
+    # --------------------------------------------------
+
     print("creating model and diffusion...")
 
     # Create the model and diffusion process
@@ -89,10 +93,14 @@ def main():
     # Print the total number of trainable parameters in the model
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters_wo_clip()) / 1000000.0))
 
+    # --------------------------------------------------
+
     print("Training...")
 
     # Initialize and run the training loop
     TrainLoop(args, train_platform, model, diffusion, data).run_loop()
+
+    # --------------------------------------------------
 
     # Close the training platform
     train_platform.close()

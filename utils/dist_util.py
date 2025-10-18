@@ -22,8 +22,10 @@ def setup_dist(device=0):
     """
     global used_device
     used_device = device
+
     if dist.is_initialized():
         return
+
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(device) # f"{MPI.COMM_WORLD.Get_rank() % GPUS_PER_NODE}"
 
     # comm = MPI.COMM_WORLD
