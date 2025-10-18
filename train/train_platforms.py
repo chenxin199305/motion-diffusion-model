@@ -35,6 +35,20 @@ class TrainPlatform:
         pass
 
 
+class NoPlatform(TrainPlatform):
+    """
+    Dummy training platform that performs no operations.
+
+    Args:
+        save_dir (str): Directory where training outputs are saved.
+        *args: Additional arguments.
+        **kwargs: Additional keyword arguments.
+    """
+
+    def __init__(self, save_dir, *args, **kwargs):
+        pass
+
+
 # Deprecated
 class ClearmlPlatform(TrainPlatform):
     """
@@ -84,20 +98,6 @@ class TensorboardPlatform(TrainPlatform):
 
     def close(self):
         self.writer.close()
-
-
-class NoPlatform(TrainPlatform):
-    """
-    Dummy training platform that performs no operations.
-
-    Args:
-        save_dir (str): Directory where training outputs are saved.
-        *args: Additional arguments.
-        **kwargs: Additional keyword arguments.
-    """
-
-    def __init__(self, save_dir, *args, **kwargs):
-        pass
 
 
 class WandBPlatform(TrainPlatform):
