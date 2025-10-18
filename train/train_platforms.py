@@ -87,16 +87,26 @@ class TensorboardPlatform(TrainPlatform):
 
 
 class NoPlatform(TrainPlatform):
+    """
+    Dummy training platform that performs no operations.
+
+    Args:
+        save_dir (str): Directory where training outputs are saved.
+        *args: Additional arguments.
+        **kwargs: Additional keyword arguments.
+    """
+
     def __init__(self, save_dir, *args, **kwargs):
         pass
 
 
 class WandBPlatform(TrainPlatform):
     """
-    Dummy training platform that performs no operations.
+    Training platform implementation using Weights & Biases (WandB) for logging and reporting.
 
     Args:
         save_dir (str): Directory where training outputs are saved.
+        config (dict, optional): Configuration dictionary for WandB. Defaults to None.
         *args: Additional arguments.
         **kwargs: Additional keyword arguments.
     """
