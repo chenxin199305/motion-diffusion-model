@@ -19,19 +19,55 @@ class TrainPlatform:
     """
 
     def __init__(self, save_dir, *args, **kwargs):
+        """
+        Initializes the training platform with the specified save directory.
+
+        Args:
+            save_dir (str): Directory where training outputs are saved.
+            *args: Additional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self.path, file = os.path.split(save_dir)
         self.name = kwargs.get('name', file)
 
     def report_scalar(self, name, value, iteration, group_name=None):
+        """
+        Reports a scalar value for a specific metric.
+
+        Args:
+            name (str): Name of the metric.
+            value (float): Value of the metric.
+            iteration (int): Current training iteration.
+            group_name (str, optional): Group name for the metric. Defaults to None.
+        """
         pass
 
     def report_media(self, title, series, iteration, local_path):
+        """
+        Reports media files (e.g., videos) for a specific training iteration.
+
+        Args:
+            title (str): Title of the media.
+            series (str): Series name for the media.
+            iteration (int): Current training iteration.
+            local_path (str): Path to the local media files.
+        """
         pass
 
     def report_args(self, args, name):
+        """
+        Reports training arguments.
+
+        Args:
+            args (object): Training arguments.
+            name (str): Name of the argument group.
+        """
         pass
 
     def close(self):
+        """
+        Closes the training platform and releases any resources.
+        """
         pass
 
 

@@ -32,6 +32,7 @@ def main():
     """
     # Parse training arguments
     args = train_args()
+
     pprint.pprint(vars(args), indent=4)
 
     # Fix random seed for reproducibility
