@@ -1,7 +1,7 @@
 """
-Training platform base class and implementations for ClearML, TensorBoard, and WandB.
+Training platform base class and implementations for Not-implemented, ClearML, TensorBoard, and WandB.
 
-不同的训练平台基类和实现，包括 ClearML、TensorBoard 和 WandB。
+不同的训练平台基类和实现，包括 NoPlatform, ClearML, TensorBoard 和 WandB。
 """
 
 import os
