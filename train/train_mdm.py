@@ -30,6 +30,10 @@ def main():
     """
     Main function to set up and run the training process.
     """
+
+    # --------------------------------------------------
+    # 准备训练参数，初始化训练平台
+
     # Parse training arguments
     args = train_args()
 
@@ -57,6 +61,8 @@ def main():
     args_path = os.path.join(args.save_dir, 'args.json')
     with open(args_path, 'w') as fw:
         json.dump(vars(args), fw, indent=4, sort_keys=True)
+
+    # --------------------------------------------------
 
     # Set up distributed training utilities
     dist_util.setup_dist(args.device)
