@@ -1,3 +1,7 @@
+"""
+在 MDM 框架下，把 HumanML3D（或 T2M）数据整理成统一的 PyTorch Dataset 接口，让不同模式下的模型都能直接使用。
+"""
+
 import torch
 from torch.utils import data
 import numpy as np
@@ -962,6 +966,7 @@ class HumanML3D(data.Dataset):
         abs_base_path = kwargs.get('abs_path', '.')
         dataset_opt_path = pjoin(abs_base_path, datapath)
         device = kwargs.get('device', None)
+
         opt = get_opt(dataset_opt_path, device)
         # opt.meta_dir = pjoin(abs_base_path, opt.meta_dir)
         opt.cache_dir = kwargs.get('cache_path', '.')
