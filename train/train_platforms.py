@@ -3,6 +3,15 @@ import glob
 
 
 class TrainPlatform:
+    """
+    Base class for training platforms, providing methods for reporting metrics, media, and arguments.
+
+    Args:
+        save_dir (str): Directory where training outputs are saved.
+        *args: Additional arguments.
+        **kwargs: Additional keyword arguments.
+    """
+
     def __init__(self, save_dir, *args, **kwargs):
         self.path, file = os.path.split(save_dir)
         self.name = kwargs.get('name', file)
@@ -22,8 +31,16 @@ class TrainPlatform:
 
 # Deprecated
 class ClearmlPlatform(TrainPlatform):
+    """
+    Training platform implementation using ClearML for logging and reporting.
+
+    Args:
+        save_dir (str): Directory where training outputs are saved.
+    """
+
     def __init__(self, save_dir):
         from clearml import Task
+
         path, name = os.path.split(save_dir)
         self.task = Task.init(project_name='motion_diffusion',
                               task_name=name,
@@ -44,8 +61,16 @@ class ClearmlPlatform(TrainPlatform):
 
 
 class TensorboardPlatform(TrainPlatform):
+    """
+    Training platform implementation using TensorBoard for logging and reporting.
+
+    Args:
+        save_dir (str): Directory where TensorBoard logs are saved.
+    """
+
     def __init__(self, save_dir):
         from torch.utils.tensorboard import SummaryWriter
+
         self.writer = SummaryWriter(log_dir=save_dir)
 
     def report_scalar(self, name, value, iteration, group_name=None):
@@ -61,7 +86,17 @@ class NoPlatform(TrainPlatform):
 
 
 class WandBPlatform(TrainPlatform):
+    """
+    Dummy training platform that performs no operations.
+
+    Args:
+        save_dir (str): Directory where training outputs are saved.
+        *args: Additional arguments.
+        **kwargs: Additional keyword arguments.
+    """
+
     import wandb
+
     def __init__(self, save_dir, config=None, *args, **kwargs):
         super().__init__(save_dir, *args, **kwargs)
         self.wandb.login(host=os.getenv("WANDB_BASE_URL"), key=os.getenv("WANDB_API_KEY"))
