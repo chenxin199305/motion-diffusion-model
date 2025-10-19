@@ -945,6 +945,27 @@ class HumanML3D(data.Dataset):
         num_actions (int): Placeholder for the number of actions (default is 1).
         mean_gpu (torch.Tensor): Mean values for normalization on GPU.
         std_gpu (torch.Tensor): Standard deviation values for normalization on GPU.
+
+    整体设计思路总结
+          ┌────────────────────────────┐
+          │ HumanML3D (MDM wrapper)    │
+          │  ↑ 封装管理路径与参数          │
+          │  ↑ 加载 mean/std            │
+          │  ↑ 初始化底层 dataset        │
+          └────────────┬───────────────┘
+                       │
+          ┌────────────────────────────┐
+          │ Text2MotionDatasetV2       │
+          │  ↑ 读取 motion + caption    │
+          │  ↑ 归一化 motion            │
+          │  ↑ 文本 → GloVe 向量         │
+          └────────────┬───────────────┘
+                       │
+          ┌────────────────────────────┐
+          │ motion.npy / caption.txt   │
+          │ Mean.npy / Std.npy         │
+          │ train.txt / test.txt       │
+          └────────────────────────────┘
     """
 
     def __init__(self, mode, datapath='./dataset/humanml_opt.txt', split="train", **kwargs):
@@ -957,8 +978,16 @@ class HumanML3D(data.Dataset):
             split (str, optional): The data split to use ('train', 'test', or 'val'). Defaults to 'train'.
             **kwargs: Additional keyword arguments for dataset configuration.
         """
+
+        """
+        控制加载哪种数据集类（如 Text2MotionDatasetV2 或 TextOnlyDataset），以及使用哪种归一化方式。
+        MDM 在训练时用 'train'，测试时用 'eval'，评估 T2M 原模型时用 'gt'。
+        """
         self.mode = mode
 
+        """
+        让代码通用：MDM 支持多个数据集（T2M、KIT、HumanML3D），用这个字段区分当前加载哪个。
+        """
         self.dataset_name = 't2m'
         self.data_name = 't2m'
 
@@ -977,8 +1006,8 @@ class HumanML3D(data.Dataset):
         opt.data_root = pjoin(abs_base_path, opt.data_root)
         opt.save_root = pjoin(abs_base_path, opt.save_root)
         opt.meta_dir = pjoin(abs_base_path, './dataset')
-        opt.use_cache = kwargs.get('use_cache', True)
-        opt.fixed_len = kwargs.get('fixed_len', 0)
+        opt.use_cache = kwargs.get('use_cache', True)  # 若为 True，数据集优先从缓存加载，提升加载速度。
+        opt.fixed_len = kwargs.get('fixed_len', 0)  # 训练时可设定固定的序列长度（防止变长序列带来的 batch 不齐），用于稳定 diffusion 模型训练。
 
         if opt.fixed_len > 0:
             opt.max_motion_length = opt.fixed_len
@@ -1004,6 +1033,59 @@ class HumanML3D(data.Dataset):
             f"Disable offset augmentation: {opt.disable_offset_aug}\n"
         )
 
+        """
+        MDM 训练和推理都需要对 motion 数据做归一化：
+        当前模型使用的数据标准化参数（Mean.npy, Std.npy）
+        
+        (motion - mean) / std，避免不同关节值范围差异过大，帮助 diffusion 模型更稳定地学习。
+        
+        Jason 2025-10-19：
+        Q: 为什么要计算 mean / std?
+        A: 人体动作数据（motion data）通常是一个高维矩阵：shape: [num_frames, num_features]
+            - 每一帧都有几十到上百个数值（关节位置、旋转、速度等）
+            - 各个维度的数值范围差异很大（比如位置在 ±1 米，旋转角可能在 ±π）
+            
+            在这种情况下，直接输入到扩散模型（Diffusion Model）会造成：
+            - 网络训练不稳定；
+            - 不同维度主导梯度；
+            - 模型收敛困难。
+            
+            所以必须做标准化：
+            x′ = (x−μ) / σ
+            - μ（mean）是所有动作数据的均值；
+            - σ（std）是所有动作数据的标准差。
+            
+            在 HumanML3D 或 T2M 数据集准备阶段，有一个 预处理脚本（通常叫 compute_mean_std.py 或 preprocess_t2m.py）。
+            - 这个脚本遍历整个数据集，计算所有动作帧的均值与标准差。
+            
+            在 HumanML3D/T2M 中，motion 的特征维度通常不是直接的 3D 坐标，而是经过预处理的 263 维特征，包括：
+            | 特征类别                        | 维度   | 说明              |
+            | --------------------------- | ---- | --------------- |
+            | Root velocity (vx, vz, vy)  | 3    | 根部移动速度          |
+            | Root rotation (ry)          | 1    | 根部旋转角速度         |
+            | Joint positions / rotations | 135  | 所有关节的相对位置       |
+            | Foot contact labels         | 4    | 脚接触地面的二进制标志     |
+            | 其他（如躯干方向）                   | 若干   | 各种额外身体姿态特征      |
+            | **总计**                      | ≈263 | HumanML3D 的标准维度 |
+            所以，Mean.npy 和 Std.npy 实际上是 263 维的向量，每一维对应一个 motion feature 的均值和标准差。
+            
+            使用方式
+            当加载 dataset 时：
+                self.mean = np.load('Mean.npy')      # shape: (263,)
+                self.std = np.load('Std.npy')        # shape: (263,)
+            之后在每次读取 motion 时执行：
+                motion = (motion - self.mean) / self.std
+            训练完成后，在生成时还原：
+                motion = motion * self.std + self.mean
+                
+            T2M 与 MDM 的两个 mean/std 文件区别
+                MDM 项目里一般有两套标准化文件：
+                | 文件名                            | 用途             | 来源                                                      |
+                | ------------------------------ | -------------- | ------------------------------------------------------- |
+                | `Mean.npy` / `Std.npy`         | MDM 的训练标准化方式   | 用于 diffusion 模型的输入输出归一化                                 |
+                | `t2m_mean.npy` / `t2m_std.npy` | 评估兼容 T2M 原论文指标 | 为了能直接比较生成结果与原始 Text-to-Motion 模型的一致性（如 FID、R-Precision） |
+
+        """
         if mode == 'gt':  # gt = ground truth
             # used by T2M models (including evaluators)
             self.mean = np.load(pjoin(opt.meta_dir, f'{opt.dataset_name}_mean.npy'))
