@@ -130,14 +130,74 @@ def t2m_prefix_collate(batch, pred_len):
         tuple: A tuple containing:
             - motion (torch.Tensor): The collated input tensor.
             - cond (dict): A dictionary containing additional collated data.
+
+    用于把一个 batch 的样本整理成模型能够直接使用的输入格式。
+
+    在 MDM 中有两种训练策略：
+    - 全序列预测（standard）—— 模型输入整个动作序列，学习生成完整动作。
+    - prefix-based 预测（autoregressive）—— 模型给定前半段动作（prefix），预测后半段动作（future）。
+
+    这个函数 t2m_prefix_collate 专门用于 prefix 模式。
+    它会从每个样本的动作序列中：
+    - 取出前半段（prefix）作为条件输入；
+    - 取出后半段（inp）作为模型的预测目标。
+    最后再通过 collate() 函数打包成 batch 张量。
     """
-    adapted_batch = [{
-        'inp': torch.tensor(b[4].T).float().unsqueeze(1)[..., -pred_len:],  # [seqlen, J] -> [J, 1, seqlen]
-        'prefix': torch.tensor(b[4].T).float().unsqueeze(1)[..., :-pred_len],
-        'text': b[2],  # b[0]['caption']
-        'tokens': b[6],
-        'lengths': pred_len,  # b[5],
-        'orig_lengths': b[5][0],  # For evaluation
-        'key': b[7] if len(b) > 7 else None,
-    } for b in batch]
+
+    """
+    1. 遍历每个样本并提取动作序列
+        b 是一条样本，一般结构为（T2M数据中常见）：
+        b = (
+            <unused0>,     # caption dict
+            <unused1>,     # audio/misc
+            text,          # caption string
+            <unused3>,     
+            motion_data,   # numpy array, shape [seq_len, J]
+            length,        # original motion length
+            tokens,        # text token IDs
+            key            # sample key (e.g. filename)
+        )
+    
+    2. 构建输入和输出张量
+        假设原动作 b[4] 是形状 [seq_len, J]
+            → .T 变成 [J, seq_len]
+            → unsqueeze(1) 变成 [J, 1, seq_len]
+        
+        这样的形状方便模型处理（[joint, channel, time] 风格）。
+
+    3. 分割成 prefix 和预测部分
+        [..., -pred_len:]   # 后 pred_len 帧 → 要预测的部分（inp）
+        [..., :-pred_len]   # 前部分 → prefix 条件输入        
+        
+        inp = 后段动作，模型需要预测的目标；
+        prefix = 前段动作，提供的上下文信息。
+        
+    4. 其他字段的含义
+        'text': b[2]	原始文本描述（自然语言）
+        'tokens': b[6]	文本的 token 表示（GloVe 或 BERT 向量）
+        'lengths': pred_len	当前样本预测长度（可统一）
+        'orig_lengths': b[5][0]	原始动作序列的长度（评估用）
+        'key': b[7]	样本标识（如文件名）
+        
+    5. 返回组装结果
+        collate() 是一个通用函数，用于：
+            把 list of dict 合并成一个 batch dict；
+            对齐张量维度（如 padding）；
+            输出模型能直接使用的 batch 格式：
+        motion 对应 'inp'（目标动作部分）
+        cond 是一个 dict，包含 'prefix'、'text'、'tokens' 等条件输入。
+    """
+    adapted_batch = [
+        {
+            'inp': torch.tensor(b[4].T).float().unsqueeze(1)[..., -pred_len:],  # [seqlen, J] -> [J, 1, seqlen]
+            'prefix': torch.tensor(b[4].T).float().unsqueeze(1)[..., :-pred_len],
+            'text': b[2],  # b[0]['caption']
+            'tokens': b[6],
+            'lengths': pred_len,  # b[5],
+            'orig_lengths': b[5][0],  # For evaluation
+            'key': b[7] if len(b) > 7 else None,
+        }
+        for b in batch  # 遍历每个样本并提取动作序列
+    ]
+
     return collate(adapted_batch)
