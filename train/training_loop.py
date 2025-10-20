@@ -66,6 +66,22 @@ class TrainLoop:
         opt (torch.optim.Optimizer): Optimizer for training.
         schedule_sampler (object): Sampler for selecting timesteps during training.
         eval_wrapper (object): Wrapper for evaluation during training.
+
+    | 属性名                | 含义                                              | 来源       |
+    | ------------------ | ----------------------------------------------- | -------- |
+    | `args`             | 命令行/配置参数对象（Namespace）                           | 用户传入     |
+    | `train_platform`   | 日志与可视化平台（如 WandB / TensorBoard）                 | 外部传入     |
+    | `model`            | 主模型 (torch.nn.Module)                           | 外部传入     |
+    | `diffusion`        | 扩散过程对象，用于训练采样等                                  | 外部传入     |
+    | `data`             | 训练集 DataLoader                                  | 外部传入     |
+    | `model_avg`        | EMA 模型副本（Exponential Moving Average）            | 可选启用     |
+    | `model_for_eval`   | 评估时用的模型（可能是 EMA 或带 classifier-free wrapper 的版本） | 内部确定     |
+    | `opt`              | 优化器 (AdamW)                                     | 内部初始化    |
+    | `schedule_sampler` | 时间步采样策略（例如 uniform sampler）                     | 内部生成     |
+    | `mp_trainer`       | 混合精度训练包装器                                       | 内部生成     |
+    | `eval_wrapper`     | 评估封装器（计算生成指标）                                   | 根据数据集初始化 |
+    | `eval_data`        | 评估数据生成器                                         | 同上       |
+
     """
 
     def __init__(self, args, train_platform, model, diffusion, data):
