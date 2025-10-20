@@ -93,6 +93,14 @@ def get_model_args(args, data):
     nfeats = 6
     all_goal_joint_names = []
 
+    """
+    数据集兼容层（HumanML3D / KIT）
+    不同数据集的骨架结构（joint 数、feature 维度）不同：
+        HumanML3D: 263 joints × 1 feature；
+        KIT: 251 joints × 1 feature；
+        SMPL-based 数据则是 25 joints × 6D rotation。
+    这里抽象出统一接口，让模型不必关心数据集内部的差异。
+    """
     if args.dataset == 'humanml':
         data_rep = 'hml_vec'
         njoints = 263

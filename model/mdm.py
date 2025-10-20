@@ -36,6 +36,85 @@ class MDM(nn.Module):
         emb_trans_dec (bool): Whether to embed transformer decoder.
         clip_version (str): Version of the CLIP model.
         **kargs: Additional keyword arguments.
+
+    MDM 类是整个模型的核心类，继承自 torch.nn.Module。
+    它由 三大功能模块 构成：
+    1. 输入编码模块：InputProcess
+        把关节数据（rot6d、xyz等格式）映射到潜空间 (latent_dim)。
+
+    2. 时序建模模块：
+        可选择三种架构：
+        Transformer Encoder (trans_enc)
+        Transformer Decoder (trans_dec)
+        GRU (gru)
+
+    3. 输出解码模块：OutputProcess
+        把潜空间表示还原为动作帧 [batch, njoints, nfeats, nframes]。
+
+    InputProcess
+        功能：把输入动作序列变换为 Transformer/GRU 可处理的时间序列特征。
+        x: [batch, njoints, nfeats, nframes] → reshape → [seq_len, batch, latent_dim]
+
+        不同 data_rep（数据表示）对应不同处理方式：
+        - 'rot6d' / 'xyz'：直接线性映射。
+        - 'rot_vel'：将第一帧位置 + 后续帧的速度分开嵌入。
+
+        | 维度名称                | 含义         | 示例                          |
+        | ------------------- | ---------- | --------------------------- |
+        | **bs (batch size)** | 批次样本数      | 一次输入 32 个动作样本               |
+        | **njoints**         | 骨架关节数      | 22（SMPL）、21（KIT）、52（AMASS）等 |
+        | **nfeats**          | 每个关节的特征维度  | 6（rot6d）、3（xyz）             |
+        | **nframes**         | 时间帧数（序列长度） | 60 帧、120 帧 等                |
+
+    时序结构选择 (arch)
+        (a) Transformer Encoder (trans_enc)
+            每一帧看作一个 token。
+            用 PositionalEncoding 加上时间位置感。
+            输入序列经过若干层自注意力 (nn.TransformerEncoder)。
+            ➡ 用于无条件或简单条件的动作生成。
+
+        (b) Transformer Decoder (trans_dec)
+            用文本嵌入 (CLIP/BERT) 作为 memory。
+            xseq 为目标序列，emb 为文本 memory。
+            支持 emb_trans_dec（时间步嵌入 + decoder 输入拼接）。
+            ➡ 用于 文本到动作 (Text2Motion) 任务。
+
+        (c) GRU (gru)
+            更轻量的循环结构，用时间步嵌入重复加在每帧上。
+            输入形状 [batch, seq, latent_dim]。
+            ➡ 用于动作补全或中短序列预测。
+
+    条件嵌入 (Conditional Embedding)
+        MDM 可以在多种条件下生成动作：
+        | 条件类型   | 模块                                   | 说明                  |
+        | ------ | ------------------------------------ | ------------------- |
+        | 文本     | CLIP / BERT                          | 将文本描述嵌入为特征向量        |
+        | 动作类别   | `EmbedAction`                        | 将动作类别索引嵌入 latent 向量 |
+        | 目标关节位置 | `EmbedTargetLoc{Single/Multi/Split}` | 在运动规划任务中使用目标点或方向    |
+
+        这些条件会与时间嵌入 (time_emb) 结合，控制扩散生成。
+        设计支持 多种组合策略：
+            'add'：直接相加（默认）
+            'concat'：拼接后送入 transformer
+
+    TimestepEmbedder
+        在扩散模型中，每一步噪声去除都有一个时间步 t。
+        此模块通过：timestep → positional encoding → MLP → latent vector
+        让模型知道当前生成的“扩散阶段”，以便在不同噪声水平下做不同的预测。
+
+    OutputProcess
+        把 Transformer/GRU 输出的 [seq_len, batch, latent_dim] 还原为动作序列：
+        [seq_len, batch, latent_dim] → [batch, njoints, nfeats, nframes]
+        支持多种输出表示：
+            rot6d（常用，用于 SMPL）
+            xyz（笛卡尔坐标）
+            rot_vel（角速度）
+
+    Rotation2xyz
+        封装在 model.rotation2xyz.Rotation2xyz，用于：
+        将预测的旋转参数转换为 3D 坐标；
+        与 SMPL 模型对接；
+        实现从潜空间到真实关节位置的最终映射。
     """
 
     def __init__(self, modeltype, njoints, nfeats, num_actions, translation, pose_rep, glob, glob_rot,

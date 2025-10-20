@@ -287,10 +287,31 @@ class TrainLoop:
         Args:
             cond (dict): Conditional inputs.
             motion (torch.Tensor): Motion data.
+
+        在这类人体运动生成任务（例如 MDM 或 Goal-conditioned Diffusion Models）中，
+        模型可能不仅仅根据文本来生成动作，还需要根据一个或多个**空间目标（target joints / goal locations）**来约束动作的结果。
+
+        例如：
+        “走到桌子前面”
+        “右手触碰门把手”
+        “头部朝向摄像机”
+        “从当前位置移动到右侧 1 米处”
+
+        这些目标条件在训练过程中需要动态生成、与 motion 对齐、并标准化处理。这正是 target_cond_modifier() 的职责。
         """
         if self.args.multi_target_cond:
             batch_size = motion.shape[0]
-            cond['target_joint_names'], cond['is_heading'] = sample_goal(batch_size, motion.device, self.args.target_joint_names)
+
+            """
+            sample_goal() 是一个随机目标采样器，它的作用是：
+            为每个样本随机选取要控制的关节（例如头、左手、右手、脚），以及是否要求该关节朝向（heading）某个方向。
+            返回两个张量（或列表）：
+                target_joint_names: 每个样本被选中的目标关节名称列表；
+                is_heading: 对应每个目标是否有朝向约束（bool 向量）。
+            """
+            cond['target_joint_names'], cond['is_heading'] = sample_goal(batch_size,
+                                                                         motion.device,
+                                                                         self.args.target_joint_names)
 
             cond['target_cond'] = get_target_location(motion,
                                                       self.data.dataset.mean[None, :, None, None],
